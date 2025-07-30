@@ -1,0 +1,403 @@
+2025-07-29 16:22:42,095 - INFO - Loaded 294919 addresses from checkpoint
+2025-07-29 16:22:42,098 - INFO - Starting simplified scraping. Target: 10000000 addresses
+2025-07-29 16:22:42,098 - INFO - Age range: 2024-08-03 to 2025-04-30
+2025-07-29 16:22:42,098 - INFO - Collecting tokens between 3 months and 1 year old
+2025-07-29 16:22:42,098 - INFO - Starting collection from Jupiter...
+2025-07-29 16:22:42,098 - INFO - Fetching from Jupiter API...
+2025-07-29 16:22:46,282 - INFO - Jupiter: Processed 1000 addresses so far
+2025-07-29 16:22:46,283 - INFO - Jupiter: Processed 2000 addresses so far
+2025-07-29 16:22:46,283 - INFO - Jupiter: Processed 3000 addresses so far
+2025-07-29 16:22:46,283 - INFO - Jupiter: Processed 4000 addresses so far
+2025-07-29 16:22:46,283 - INFO - Jupiter: Processed 5000 addresses so far
+2025-07-29 16:22:46,284 - INFO - Jupiter: Processed 6000 addresses so far
+2025-07-29 16:22:46,284 - INFO - Jupiter: Processed 7000 addresses so far
+2025-07-29 16:22:46,284 - INFO - Jupiter: Processed 8000 addresses so far
+2025-07-29 16:22:46,284 - INFO - Jupiter: Processed 9000 addresses so far
+2025-07-29 16:22:46,284 - INFO - Jupiter: Processed 10000 addresses so far
+2025-07-29 16:22:46,285 - INFO - Jupiter: Processed 11000 addresses so far
+2025-07-29 16:22:46,285 - INFO - Jupiter: Processed 12000 addresses so far
+2025-07-29 16:22:46,285 - INFO - Jupiter: Processed 13000 addresses so far
+2025-07-29 16:22:46,285 - INFO - Jupiter: Processed 14000 addresses so far
+2025-07-29 16:22:46,285 - INFO - Jupiter: Processed 15000 addresses so far
+2025-07-29 16:22:46,285 - INFO - Jupiter: Processed 16000 addresses so far
+2025-07-29 16:22:46,286 - INFO - Jupiter: Processed 17000 addresses so far
+2025-07-29 16:22:46,286 - INFO - Jupiter: Processed 18000 addresses so far
+2025-07-29 16:22:46,286 - INFO - Jupiter: Processed 19000 addresses so far
+2025-07-29 16:22:46,286 - INFO - Jupiter: Processed 20000 addresses so far
+2025-07-29 16:22:46,286 - INFO - Jupiter: Processed 21000 addresses so far
+2025-07-29 16:22:46,287 - INFO - Jupiter: Processed 22000 addresses so far
+2025-07-29 16:22:46,287 - INFO - Jupiter: Processed 23000 addresses so far
+2025-07-29 16:22:46,287 - INFO - Jupiter: Processed 24000 addresses so far
+2025-07-29 16:22:46,287 - INFO - Jupiter: Processed 25000 addresses so far
+2025-07-29 16:22:46,287 - INFO - Jupiter: Processed 26000 addresses so far
+2025-07-29 16:22:46,287 - INFO - Jupiter: Processed 27000 addresses so far
+2025-07-29 16:22:46,288 - INFO - Jupiter: Processed 28000 addresses so far
+2025-07-29 16:22:46,288 - INFO - Jupiter: Processed 29000 addresses so far
+2025-07-29 16:22:46,288 - INFO - Jupiter: Processed 30000 addresses so far
+2025-07-29 16:22:46,288 - INFO - Jupiter: Processed 31000 addresses so far
+2025-07-29 16:22:46,289 - INFO - Jupiter: Processed 32000 addresses so far
+2025-07-29 16:22:46,289 - INFO - Jupiter: Processed 33000 addresses so far
+2025-07-29 16:22:46,289 - INFO - Jupiter: Processed 34000 addresses so far
+2025-07-29 16:22:46,289 - INFO - Jupiter: Processed 35000 addresses so far
+2025-07-29 16:22:46,290 - INFO - Jupiter: Processed 36000 addresses so far
+2025-07-29 16:22:46,290 - INFO - Jupiter: Processed 37000 addresses so far
+2025-07-29 16:22:46,290 - INFO - Jupiter: Processed 38000 addresses so far
+2025-07-29 16:22:46,290 - INFO - Jupiter: Processed 39000 addresses so far
+2025-07-29 16:22:46,291 - INFO - Jupiter: Processed 40000 addresses so far
+2025-07-29 16:22:46,291 - INFO - Jupiter: Processed 41000 addresses so far
+2025-07-29 16:22:46,291 - INFO - Jupiter: Processed 42000 addresses so far
+2025-07-29 16:22:46,291 - INFO - Jupiter: Processed 43000 addresses so far
+2025-07-29 16:22:46,292 - INFO - Jupiter: Processed 44000 addresses so far
+2025-07-29 16:22:46,292 - INFO - Jupiter: Processed 45000 addresses so far
+2025-07-29 16:22:46,292 - INFO - Jupiter: Processed 46000 addresses so far
+2025-07-29 16:22:46,292 - INFO - Jupiter: Processed 47000 addresses so far
+2025-07-29 16:22:46,293 - INFO - Jupiter: Processed 48000 addresses so far
+2025-07-29 16:22:46,293 - INFO - Jupiter: Processed 49000 addresses so far
+2025-07-29 16:22:46,293 - INFO - Jupiter: Processed 50000 addresses so far
+2025-07-29 16:22:46,294 - INFO - Jupiter: Processed 51000 addresses so far
+2025-07-29 16:22:46,294 - INFO - Jupiter: Processed 52000 addresses so far
+2025-07-29 16:22:46,294 - INFO - Jupiter: Processed 53000 addresses so far
+2025-07-29 16:22:46,294 - INFO - Jupiter: Processed 54000 addresses so far
+2025-07-29 16:22:46,295 - INFO - Jupiter: Processed 55000 addresses so far
+2025-07-29 16:22:46,295 - INFO - Jupiter: Processed 56000 addresses so far
+2025-07-29 16:22:46,295 - INFO - Jupiter: Processed 57000 addresses so far
+2025-07-29 16:22:46,296 - INFO - Jupiter: Processed 58000 addresses so far
+2025-07-29 16:22:46,296 - INFO - Jupiter: Processed 59000 addresses so far
+2025-07-29 16:22:46,296 - INFO - Jupiter: Processed 60000 addresses so far
+2025-07-29 16:22:46,297 - INFO - Jupiter: Processed 61000 addresses so far
+2025-07-29 16:22:46,297 - INFO - Jupiter: Processed 62000 addresses so far
+2025-07-29 16:22:46,297 - INFO - Jupiter: Processed 63000 addresses so far
+2025-07-29 16:22:46,298 - INFO - Jupiter: Processed 64000 addresses so far
+2025-07-29 16:22:46,298 - INFO - Jupiter: Processed 65000 addresses so far
+2025-07-29 16:22:46,298 - INFO - Jupiter: Processed 66000 addresses so far
+2025-07-29 16:22:46,299 - INFO - Jupiter: Processed 67000 addresses so far
+2025-07-29 16:22:46,299 - INFO - Jupiter: Processed 68000 addresses so far
+2025-07-29 16:22:46,300 - INFO - Jupiter: Processed 69000 addresses so far
+2025-07-29 16:22:46,300 - INFO - Jupiter: Processed 70000 addresses so far
+2025-07-29 16:22:46,300 - INFO - Jupiter: Processed 71000 addresses so far
+2025-07-29 16:22:46,301 - INFO - Jupiter: Processed 72000 addresses so far
+2025-07-29 16:22:46,301 - INFO - Jupiter: Processed 73000 addresses so far
+2025-07-29 16:22:46,301 - INFO - Jupiter: Processed 74000 addresses so far
+2025-07-29 16:22:46,301 - INFO - Jupiter: Processed 75000 addresses so far
+2025-07-29 16:22:46,302 - INFO - Jupiter: Processed 76000 addresses so far
+2025-07-29 16:22:46,302 - INFO - Jupiter: Processed 77000 addresses so far
+2025-07-29 16:22:46,302 - INFO - Jupiter: Processed 78000 addresses so far
+2025-07-29 16:22:46,303 - INFO - Jupiter: Processed 79000 addresses so far
+2025-07-29 16:22:46,303 - INFO - Jupiter: Processed 80000 addresses so far
+2025-07-29 16:22:46,304 - INFO - Jupiter: Processed 81000 addresses so far
+2025-07-29 16:22:46,304 - INFO - Jupiter: Processed 82000 addresses so far
+2025-07-29 16:22:46,304 - INFO - Jupiter: Processed 83000 addresses so far
+2025-07-29 16:22:46,304 - INFO - Jupiter: Processed 84000 addresses so far
+2025-07-29 16:22:46,304 - INFO - Jupiter: Processed 85000 addresses so far
+2025-07-29 16:22:46,305 - INFO - Jupiter: Processed 86000 addresses so far
+2025-07-29 16:22:46,305 - INFO - Jupiter: Processed 87000 addresses so far
+2025-07-29 16:22:46,305 - INFO - Jupiter: Processed 88000 addresses so far
+2025-07-29 16:22:46,305 - INFO - Jupiter: Processed 89000 addresses so far
+2025-07-29 16:22:46,306 - INFO - Jupiter: Processed 90000 addresses so far
+2025-07-29 16:22:46,306 - INFO - Jupiter: Processed 91000 addresses so far
+2025-07-29 16:22:46,306 - INFO - Jupiter: Processed 92000 addresses so far
+2025-07-29 16:22:46,306 - INFO - Jupiter: Processed 93000 addresses so far
+2025-07-29 16:22:46,306 - INFO - Jupiter: Processed 94000 addresses so far
+2025-07-29 16:22:46,307 - INFO - Jupiter: Processed 95000 addresses so far
+2025-07-29 16:22:46,307 - INFO - Jupiter: Processed 96000 addresses so far
+2025-07-29 16:22:46,307 - INFO - Jupiter: Processed 97000 addresses so far
+2025-07-29 16:22:46,307 - INFO - Jupiter: Processed 98000 addresses so far
+2025-07-29 16:22:46,307 - INFO - Jupiter: Processed 99000 addresses so far
+2025-07-29 16:22:46,308 - INFO - Jupiter: Processed 100000 addresses so far
+2025-07-29 16:22:46,308 - INFO - Jupiter: Processed 101000 addresses so far
+2025-07-29 16:22:46,308 - INFO - Jupiter: Processed 102000 addresses so far
+2025-07-29 16:22:46,309 - INFO - Jupiter: Processed 103000 addresses so far
+2025-07-29 16:22:46,309 - INFO - Jupiter: Processed 104000 addresses so far
+2025-07-29 16:22:46,310 - INFO - Jupiter: Processed 105000 addresses so far
+2025-07-29 16:22:46,311 - INFO - Jupiter: Processed 106000 addresses so far
+2025-07-29 16:22:46,311 - INFO - Jupiter: Processed 107000 addresses so far
+2025-07-29 16:22:46,312 - INFO - Jupiter: Processed 108000 addresses so far
+2025-07-29 16:22:46,312 - INFO - Jupiter: Processed 109000 addresses so far
+2025-07-29 16:22:46,313 - INFO - Jupiter: Processed 110000 addresses so far
+2025-07-29 16:22:46,314 - INFO - Jupiter: Processed 111000 addresses so far
+2025-07-29 16:22:46,314 - INFO - Jupiter: Processed 112000 addresses so far
+2025-07-29 16:22:46,315 - INFO - Jupiter: Processed 113000 addresses so far
+2025-07-29 16:22:46,315 - INFO - Jupiter: Processed 114000 addresses so far
+2025-07-29 16:22:46,315 - INFO - Jupiter: Processed 115000 addresses so far
+2025-07-29 16:22:46,315 - INFO - Jupiter: Processed 116000 addresses so far
+2025-07-29 16:22:46,316 - INFO - Jupiter: Processed 117000 addresses so far
+2025-07-29 16:22:46,316 - INFO - Jupiter: Processed 118000 addresses so far
+2025-07-29 16:22:46,316 - INFO - Jupiter: Processed 119000 addresses so far
+2025-07-29 16:22:46,317 - INFO - Jupiter: Processed 120000 addresses so far
+2025-07-29 16:22:46,317 - INFO - Jupiter: Processed 121000 addresses so far
+2025-07-29 16:22:46,317 - INFO - Jupiter: Processed 122000 addresses so far
+2025-07-29 16:22:46,317 - INFO - Jupiter: Processed 123000 addresses so far
+2025-07-29 16:22:46,318 - INFO - Jupiter: Processed 124000 addresses so far
+2025-07-29 16:22:46,318 - INFO - Jupiter: Processed 125000 addresses so far
+2025-07-29 16:22:46,319 - INFO - Jupiter: Processed 126000 addresses so far
+2025-07-29 16:22:46,319 - INFO - Jupiter: Processed 127000 addresses so far
+2025-07-29 16:22:46,319 - INFO - Jupiter: Processed 128000 addresses so far
+2025-07-29 16:22:46,320 - INFO - Jupiter: Processed 129000 addresses so far
+2025-07-29 16:22:46,320 - INFO - Jupiter: Processed 130000 addresses so far
+2025-07-29 16:22:46,320 - INFO - Jupiter: Processed 131000 addresses so far
+2025-07-29 16:22:46,321 - INFO - Jupiter: Processed 132000 addresses so far
+2025-07-29 16:22:46,321 - INFO - Jupiter: Processed 133000 addresses so far
+2025-07-29 16:22:46,321 - INFO - Jupiter: Processed 134000 addresses so far
+2025-07-29 16:22:46,322 - INFO - Jupiter: Processed 135000 addresses so far
+2025-07-29 16:22:46,322 - INFO - Jupiter: Processed 136000 addresses so far
+2025-07-29 16:22:46,322 - INFO - Jupiter: Processed 137000 addresses so far
+2025-07-29 16:22:46,322 - INFO - Jupiter: Processed 138000 addresses so far
+2025-07-29 16:22:46,323 - INFO - Jupiter: Processed 139000 addresses so far
+2025-07-29 16:22:46,323 - INFO - Jupiter: Processed 140000 addresses so far
+2025-07-29 16:22:46,323 - INFO - Jupiter: Processed 141000 addresses so far
+2025-07-29 16:22:46,323 - INFO - Jupiter: Processed 142000 addresses so far
+2025-07-29 16:22:46,324 - INFO - Jupiter: Processed 143000 addresses so far
+2025-07-29 16:22:46,324 - INFO - Jupiter: Processed 144000 addresses so far
+2025-07-29 16:22:46,324 - INFO - Jupiter: Processed 145000 addresses so far
+2025-07-29 16:22:46,325 - INFO - Jupiter: Processed 146000 addresses so far
+2025-07-29 16:22:46,325 - INFO - Jupiter: Processed 147000 addresses so far
+2025-07-29 16:22:46,325 - INFO - Jupiter: Processed 148000 addresses so far
+2025-07-29 16:22:46,326 - INFO - Jupiter: Processed 149000 addresses so far
+2025-07-29 16:22:46,326 - INFO - Jupiter: Processed 150000 addresses so far
+2025-07-29 16:22:46,326 - INFO - Jupiter: Processed 151000 addresses so far
+2025-07-29 16:22:46,327 - INFO - Jupiter: Processed 152000 addresses so far
+2025-07-29 16:22:46,327 - INFO - Jupiter: Processed 153000 addresses so far
+2025-07-29 16:22:46,327 - INFO - Jupiter: Processed 154000 addresses so far
+2025-07-29 16:22:46,328 - INFO - Jupiter: Processed 155000 addresses so far
+2025-07-29 16:22:46,328 - INFO - Jupiter: Processed 156000 addresses so far
+2025-07-29 16:22:46,329 - INFO - Jupiter: Processed 157000 addresses so far
+2025-07-29 16:22:46,331 - INFO - Jupiter: Processed 158000 addresses so far
+2025-07-29 16:22:46,331 - INFO - Jupiter: Processed 159000 addresses so far
+2025-07-29 16:22:46,332 - INFO - Jupiter: Processed 160000 addresses so far
+2025-07-29 16:22:46,332 - INFO - Jupiter: Processed 161000 addresses so far
+2025-07-29 16:22:46,332 - INFO - Jupiter: Processed 162000 addresses so far
+2025-07-29 16:22:46,333 - INFO - Jupiter: Processed 163000 addresses so far
+2025-07-29 16:22:46,333 - INFO - Jupiter: Processed 164000 addresses so far
+2025-07-29 16:22:46,333 - INFO - Jupiter: Processed 165000 addresses so far
+2025-07-29 16:22:46,334 - INFO - Jupiter: Processed 166000 addresses so far
+2025-07-29 16:22:46,334 - INFO - Jupiter: Processed 167000 addresses so far
+2025-07-29 16:22:46,335 - INFO - Jupiter: Processed 168000 addresses so far
+2025-07-29 16:22:46,335 - INFO - Jupiter: Processed 169000 addresses so far
+2025-07-29 16:22:46,335 - INFO - Jupiter: Processed 170000 addresses so far
+2025-07-29 16:22:46,336 - INFO - Jupiter: Processed 171000 addresses so far
+2025-07-29 16:22:46,336 - INFO - Jupiter: Processed 172000 addresses so far
+2025-07-29 16:22:46,336 - INFO - Jupiter: Processed 173000 addresses so far
+2025-07-29 16:22:46,337 - INFO - Jupiter: Processed 174000 addresses so far
+2025-07-29 16:22:46,337 - INFO - Jupiter: Processed 175000 addresses so far
+2025-07-29 16:22:46,338 - INFO - Jupiter: Processed 176000 addresses so far
+2025-07-29 16:22:46,338 - INFO - Jupiter: Processed 177000 addresses so far
+2025-07-29 16:22:46,338 - INFO - Jupiter: Processed 178000 addresses so far
+2025-07-29 16:22:46,338 - INFO - Jupiter: Processed 179000 addresses so far
+2025-07-29 16:22:46,339 - INFO - Jupiter: Processed 180000 addresses so far
+2025-07-29 16:22:46,339 - INFO - Jupiter: Processed 181000 addresses so far
+2025-07-29 16:22:46,339 - INFO - Jupiter: Processed 182000 addresses so far
+2025-07-29 16:22:46,340 - INFO - Jupiter: Processed 183000 addresses so far
+2025-07-29 16:22:46,340 - INFO - Jupiter: Processed 184000 addresses so far
+2025-07-29 16:22:46,340 - INFO - Jupiter: Processed 185000 addresses so far
+2025-07-29 16:22:46,341 - INFO - Jupiter: Processed 186000 addresses so far
+2025-07-29 16:22:46,341 - INFO - Jupiter: Processed 187000 addresses so far
+2025-07-29 16:22:46,341 - INFO - Jupiter: Processed 188000 addresses so far
+2025-07-29 16:22:46,342 - INFO - Jupiter: Processed 189000 addresses so far
+2025-07-29 16:22:46,342 - INFO - Jupiter: Processed 190000 addresses so far
+2025-07-29 16:22:46,342 - INFO - Jupiter: Processed 191000 addresses so far
+2025-07-29 16:22:46,343 - INFO - Jupiter: Processed 192000 addresses so far
+2025-07-29 16:22:46,343 - INFO - Jupiter: Processed 193000 addresses so far
+2025-07-29 16:22:46,344 - INFO - Jupiter: Processed 194000 addresses so far
+2025-07-29 16:22:46,344 - INFO - Jupiter: Processed 195000 addresses so far
+2025-07-29 16:22:46,345 - INFO - Jupiter: Processed 196000 addresses so far
+2025-07-29 16:22:46,345 - INFO - Jupiter: Processed 197000 addresses so far
+2025-07-29 16:22:46,346 - INFO - Jupiter: Processed 198000 addresses so far
+2025-07-29 16:22:46,346 - INFO - Jupiter: Processed 199000 addresses so far
+2025-07-29 16:22:46,347 - INFO - Jupiter: Processed 200000 addresses so far
+2025-07-29 16:22:46,347 - INFO - Jupiter: Processed 201000 addresses so far
+2025-07-29 16:22:46,347 - INFO - Jupiter: Processed 202000 addresses so far
+2025-07-29 16:22:46,348 - INFO - Jupiter: Processed 203000 addresses so far
+2025-07-29 16:22:46,348 - INFO - Jupiter: Processed 204000 addresses so far
+2025-07-29 16:22:46,348 - INFO - Jupiter: Processed 205000 addresses so far
+2025-07-29 16:22:46,349 - INFO - Jupiter: Processed 206000 addresses so far
+2025-07-29 16:22:46,349 - INFO - Jupiter: Processed 207000 addresses so far
+2025-07-29 16:22:46,350 - INFO - Jupiter: Processed 208000 addresses so far
+2025-07-29 16:22:46,350 - INFO - Jupiter: Processed 209000 addresses so far
+2025-07-29 16:22:46,350 - INFO - Jupiter: Processed 210000 addresses so far
+2025-07-29 16:22:46,351 - INFO - Jupiter: Processed 211000 addresses so far
+2025-07-29 16:22:46,351 - INFO - Jupiter: Processed 212000 addresses so far
+2025-07-29 16:22:46,352 - INFO - Jupiter: Processed 213000 addresses so far
+2025-07-29 16:22:46,352 - INFO - Jupiter: Processed 214000 addresses so far
+2025-07-29 16:22:46,352 - INFO - Jupiter: Processed 215000 addresses so far
+2025-07-29 16:22:46,353 - INFO - Jupiter: Processed 216000 addresses so far
+2025-07-29 16:22:46,353 - INFO - Jupiter: Processed 217000 addresses so far
+2025-07-29 16:22:46,354 - INFO - Jupiter: Processed 218000 addresses so far
+2025-07-29 16:22:46,354 - INFO - Jupiter: Processed 219000 addresses so far
+2025-07-29 16:22:46,354 - INFO - Jupiter: Processed 220000 addresses so far
+2025-07-29 16:22:46,355 - INFO - Jupiter: Processed 221000 addresses so far
+2025-07-29 16:22:46,355 - INFO - Jupiter: Processed 222000 addresses so far
+2025-07-29 16:22:46,355 - INFO - Jupiter: Processed 223000 addresses so far
+2025-07-29 16:22:46,355 - INFO - Jupiter: Processed 224000 addresses so far
+2025-07-29 16:22:46,356 - INFO - Jupiter: Processed 225000 addresses so far
+2025-07-29 16:22:46,356 - INFO - Jupiter: Processed 226000 addresses so far
+2025-07-29 16:22:46,356 - INFO - Jupiter: Processed 227000 addresses so far
+2025-07-29 16:22:46,356 - INFO - Jupiter: Processed 228000 addresses so far
+2025-07-29 16:22:46,357 - INFO - Jupiter: Processed 229000 addresses so far
+2025-07-29 16:22:46,357 - INFO - Jupiter: Processed 230000 addresses so far
+2025-07-29 16:22:46,357 - INFO - Jupiter: Processed 231000 addresses so far
+2025-07-29 16:22:46,357 - INFO - Jupiter: Processed 232000 addresses so far
+2025-07-29 16:22:46,358 - INFO - Jupiter: Processed 233000 addresses so far
+2025-07-29 16:22:46,358 - INFO - Jupiter: Processed 234000 addresses so far
+2025-07-29 16:22:46,358 - INFO - Jupiter: Processed 235000 addresses so far
+2025-07-29 16:22:46,359 - INFO - Jupiter: Processed 236000 addresses so far
+2025-07-29 16:22:46,359 - INFO - Jupiter: Processed 237000 addresses so far
+2025-07-29 16:22:46,360 - INFO - Jupiter: Processed 238000 addresses so far
+2025-07-29 16:22:46,360 - INFO - Jupiter: Processed 239000 addresses so far
+2025-07-29 16:22:46,360 - INFO - Jupiter: Processed 240000 addresses so far
+2025-07-29 16:22:46,361 - INFO - Jupiter: Processed 241000 addresses so far
+2025-07-29 16:22:46,361 - INFO - Jupiter: Processed 242000 addresses so far
+2025-07-29 16:22:46,361 - INFO - Jupiter: Processed 243000 addresses so far
+2025-07-29 16:22:46,362 - INFO - Jupiter: Processed 244000 addresses so far
+2025-07-29 16:22:46,362 - INFO - Jupiter: Processed 245000 addresses so far
+2025-07-29 16:22:46,362 - INFO - Jupiter: Processed 246000 addresses so far
+2025-07-29 16:22:46,363 - INFO - Jupiter: Processed 247000 addresses so far
+2025-07-29 16:22:46,363 - INFO - Jupiter: Processed 248000 addresses so far
+2025-07-29 16:22:46,363 - INFO - Jupiter: Processed 249000 addresses so far
+2025-07-29 16:22:46,364 - INFO - Jupiter: Processed 250000 addresses so far
+2025-07-29 16:22:46,364 - INFO - Jupiter: Processed 251000 addresses so far
+2025-07-29 16:22:46,364 - INFO - Jupiter: Processed 252000 addresses so far
+2025-07-29 16:22:46,365 - INFO - Jupiter: Processed 253000 addresses so far
+2025-07-29 16:22:46,365 - INFO - Jupiter: Processed 254000 addresses so far
+2025-07-29 16:22:46,365 - INFO - Jupiter: Processed 255000 addresses so far
+2025-07-29 16:22:46,366 - INFO - Jupiter: Processed 256000 addresses so far
+2025-07-29 16:22:46,366 - INFO - Jupiter: Processed 257000 addresses so far
+2025-07-29 16:22:46,366 - INFO - Jupiter: Processed 258000 addresses so far
+2025-07-29 16:22:46,367 - INFO - Jupiter: Processed 259000 addresses so far
+2025-07-29 16:22:46,367 - INFO - Jupiter: Processed 260000 addresses so far
+2025-07-29 16:22:46,367 - INFO - Jupiter: Processed 261000 addresses so far
+2025-07-29 16:22:46,368 - INFO - Jupiter: Processed 262000 addresses so far
+2025-07-29 16:22:46,368 - INFO - Jupiter: Processed 263000 addresses so far
+2025-07-29 16:22:46,369 - INFO - Jupiter: Processed 264000 addresses so far
+2025-07-29 16:22:46,369 - INFO - Jupiter: Processed 265000 addresses so far
+2025-07-29 16:22:46,370 - INFO - Jupiter: Processed 266000 addresses so far
+2025-07-29 16:22:46,370 - INFO - Jupiter: Processed 267000 addresses so far
+2025-07-29 16:22:46,370 - INFO - Jupiter: Processed 268000 addresses so far
+2025-07-29 16:22:46,371 - INFO - Jupiter: Processed 269000 addresses so far
+2025-07-29 16:22:46,371 - INFO - Jupiter: Processed 270000 addresses so far
+2025-07-29 16:22:46,371 - INFO - Jupiter: Processed 271000 addresses so far
+2025-07-29 16:22:46,371 - INFO - Jupiter: Processed 272000 addresses so far
+2025-07-29 16:22:46,372 - INFO - Jupiter: Processed 273000 addresses so far
+2025-07-29 16:22:46,372 - INFO - Jupiter: Processed 274000 addresses so far
+2025-07-29 16:22:46,372 - INFO - Jupiter: Processed 275000 addresses so far
+2025-07-29 16:22:46,372 - INFO - Jupiter: Processed 276000 addresses so far
+2025-07-29 16:22:46,373 - INFO - Jupiter: Processed 277000 addresses so far
+2025-07-29 16:22:46,373 - INFO - Jupiter: Processed 278000 addresses so far
+2025-07-29 16:22:46,373 - INFO - Jupiter: Processed 279000 addresses so far
+2025-07-29 16:22:46,373 - INFO - Jupiter: Processed 280000 addresses so far
+2025-07-29 16:22:46,374 - INFO - Jupiter: Processed 281000 addresses so far
+2025-07-29 16:22:46,374 - INFO - Jupiter: Processed 282000 addresses so far
+2025-07-29 16:22:46,374 - INFO - Jupiter: Processed 283000 addresses so far
+2025-07-29 16:22:46,375 - INFO - Jupiter: Processed 284000 addresses so far
+2025-07-29 16:22:46,375 - INFO - Jupiter: Processed 285000 addresses so far
+2025-07-29 16:22:46,375 - INFO - Jupiter: Processed 286000 addresses so far
+2025-07-29 16:22:46,376 - INFO - Jupiter: Processed 287000 addresses so far
+2025-07-29 16:22:46,376 - INFO - Jupiter: Found 287862 token addresses
+2025-07-29 16:22:46,430 - INFO - Jupiter: Added 287862 new addresses
+2025-07-29 16:22:46,430 - INFO - Total unique addresses so far: 287862
+2025-07-29 16:22:46,447 - INFO - Current progress: 287862 / 10000000 addresses
+2025-07-29 16:22:46,447 - INFO - Starting collection from CoinGecko...
+2025-07-29 16:22:46,447 - INFO - Fetching from CoinGecko API...
+2025-07-29 16:22:46,988 - INFO - CoinGecko page 1: 250 coins processed, total addresses: 0
+2025-07-29 16:22:49,554 - INFO - CoinGecko page 2: 250 coins processed, total addresses: 0
+2025-07-29 16:22:52,108 - INFO - CoinGecko page 3: 250 coins processed, total addresses: 0
+2025-07-29 16:22:54,672 - INFO - CoinGecko page 4: 250 coins processed, total addresses: 0
+2025-07-29 16:22:57,226 - INFO - CoinGecko page 5: 250 coins processed, total addresses: 0
+2025-07-29 16:22:59,243 - INFO - Rate limited, waiting longer...
+2025-07-29 16:23:19,285 - INFO - Rate limited, waiting longer...
+2025-07-29 16:23:39,575 - INFO - Rate limited, waiting longer...
+2025-07-29 16:24:00,061 - INFO - CoinGecko page 9: 250 coins processed, total addresses: 0
+2025-07-29 16:24:02,665 - INFO - CoinGecko page 10: 250 coins processed, total addresses: 0
+2025-07-29 16:24:05,163 - INFO - CoinGecko page 11: 250 coins processed, total addresses: 0
+2025-07-29 16:24:07,680 - INFO - CoinGecko page 12: 250 coins processed, total addresses: 0
+2025-07-29 16:24:10,182 - INFO - CoinGecko page 13: 250 coins processed, total addresses: 0
+2025-07-29 16:24:13,014 - INFO - CoinGecko page 14: 250 coins processed, total addresses: 0
+2025-07-29 16:24:15,040 - INFO - Rate limited, waiting longer...
+2025-07-29 16:24:35,045 - WARNING - CoinGecko: Too many rate limit failures, trying alternative approach
+2025-07-29 16:24:35,045 - INFO - Trying alternative CoinGecko approach...
+2025-07-29 16:24:35,104 - WARNING - CoinGecko alternative API error: 429
+2025-07-29 16:24:35,104 - INFO - CoinGecko: Found 0 token addresses
+2025-07-29 16:24:35,123 - INFO - CoinGecko: Added 0 new addresses
+2025-07-29 16:24:35,123 - INFO - Total unique addresses so far: 287862
+2025-07-29 16:24:35,123 - INFO - Current progress: 287862 / 10000000 addresses
+2025-07-29 16:24:35,123 - INFO - Starting collection from Solscan...
+2025-07-29 16:24:35,123 - INFO - Fetching from Solscan API...
+2025-07-29 16:24:35,529 - WARNING - Solscan endpoint not found, trying alternative approach...
+2025-07-29 16:24:35,529 - INFO - Trying alternative Solscan approach...
+2025-07-29 16:24:37,030 - INFO - Solscan: Found 0 token addresses
+2025-07-29 16:24:37,030 - INFO - Solscan: Added 0 new addresses
+2025-07-29 16:24:37,030 - INFO - Total unique addresses so far: 287862
+2025-07-29 16:24:37,030 - INFO - Current progress: 287862 / 10000000 addresses
+2025-07-29 16:24:37,030 - INFO - Starting collection from DexScreener...
+2025-07-29 16:24:37,030 - INFO - Fetching from DexScreener API...
+2025-07-29 16:24:37,087 - INFO - DexScreener 'sol': Found 30 pairs, total addresses: 0
+2025-07-29 16:24:38,965 - INFO - DexScreener 'usdc': Found 30 pairs, total addresses: 0
+2025-07-29 16:24:42,099 - INFO - DexScreener 'bonk': Found 30 pairs, total addresses: 4
+2025-07-29 16:24:44,015 - INFO - DexScreener 'ray': Found 30 pairs, total addresses: 7
+2025-07-29 16:24:45,874 - INFO - DexScreener 'jup': Found 30 pairs, total addresses: 8
+2025-07-29 16:24:47,751 - INFO - DexScreener 'pyth': Found 30 pairs, total addresses: 10
+2025-07-29 16:24:49,407 - INFO - DexScreener 'serum': Found 9 pairs, total addresses: 10
+2025-07-29 16:24:52,318 - INFO - DexScreener 'mango': Found 30 pairs, total addresses: 13
+2025-07-29 16:24:54,072 - INFO - DexScreener 'orca': Found 30 pairs, total addresses: 20
+2025-07-29 16:24:55,731 - INFO - DexScreener 'fida': Found 19 pairs, total addresses: 22
+2025-07-29 16:24:57,443 - INFO - DexScreener 'step': Found 30 pairs, total addresses: 29
+2025-07-29 16:24:59,286 - INFO - DexScreener 'cope': Found 30 pairs, total addresses: 33
+2025-07-29 16:25:01,214 - INFO - DexScreener 'rope': Found 30 pairs, total addresses: 43
+2025-07-29 16:25:03,136 - INFO - DexScreener 'samo': Found 30 pairs, total addresses: 47
+2025-07-29 16:25:13,521 - INFO - DexScreener 'ninja': Found 30 pairs, total addresses: 51
+2025-07-29 16:25:15,369 - INFO - DexScreener 'atlas': Found 30 pairs, total addresses: 56
+2025-07-29 16:25:17,227 - INFO - DexScreener 'polis': Found 30 pairs, total addresses: 58
+2025-07-29 16:25:19,321 - INFO - DexScreener 'media': Found 30 pairs, total addresses: 63
+2025-07-29 16:25:21,135 - INFO - DexScreener 'like': Found 30 pairs, total addresses: 71
+2025-07-29 16:25:34,374 - INFO - DexScreener 'basis': Found 20 pairs, total addresses: 72
+2025-07-29 16:25:36,039 - INFO - DexScreener 'sunny': Found 25 pairs, total addresses: 72
+2025-07-29 16:25:37,557 - INFO - DexScreener 'saber': Found 13 pairs, total addresses: 74
+2025-07-29 16:25:39,429 - INFO - DexScreener 'sonar': Found 4 pairs, total addresses: 74
+2025-07-29 16:25:41,346 - INFO - DexScreener 'star': Found 30 pairs, total addresses: 77
+2025-07-29 16:25:43,037 - INFO - DexScreener 'slnd': Found 13 pairs, total addresses: 82
+2025-07-29 16:25:47,277 - INFO - DexScreener 'srm': Found 30 pairs, total addresses: 92
+2025-07-29 16:25:49,701 - INFO - DexScreener 'ftt': Found 30 pairs, total addresses: 97
+2025-07-29 16:25:51,515 - INFO - DexScreener 'msol': Found 30 pairs, total addresses: 99
+2025-07-29 16:25:53,043 - INFO - DexScreener: Found 99 token addresses
+2025-07-29 16:25:53,043 - INFO - DexScreener: Added 70 new addresses
+2025-07-29 16:25:53,043 - INFO - Total unique addresses so far: 287932
+2025-07-29 16:25:53,043 - INFO - Current progress: 287932 / 10000000 addresses
+2025-07-29 16:25:53,043 - INFO - Starting collection from Orca...
+2025-07-29 16:25:53,043 - INFO - Fetching from Orca API...
+2025-07-29 16:25:53,717 - INFO - Orca: Found 9857 token addresses
+2025-07-29 16:25:53,728 - INFO - Orca: Added 6987 new addresses
+2025-07-29 16:25:53,728 - INFO - Total unique addresses so far: 294919
+2025-07-29 16:25:53,728 - INFO - Current progress: 294919 / 10000000 addresses
+2025-07-29 16:25:53,728 - INFO - Starting collection from Raydium...
+2025-07-29 16:25:53,728 - INFO - Fetching from Raydium API...
+2025-07-29 16:26:10,818 - INFO - Raydium: Found 694358 token addresses
+2025-07-29 16:26:11,146 - INFO - Raydium: Added 585243 new addresses
+2025-07-29 16:26:11,146 - INFO - Total unique addresses so far: 880162
+2025-07-29 16:26:13,606 - INFO - Exported 880162 addresses to solana_mint_addresses_3months_to_1year.csv
+2025-07-29 16:26:13,975 - INFO - Also saved to solana_mint_addresses_3months_to_1year.txt
+2025-07-29 16:26:14,023 - INFO - Progress saved at 880162 addresses
+2025-07-29 16:26:14,023 - INFO - Current progress: 880162 / 10000000 addresses
+2025-07-29 16:26:14,023 - INFO - Starting collection from Serum...
+2025-07-29 16:26:14,023 - INFO - Fetching from Serum markets...
+2025-07-29 16:26:14,208 - INFO - Serum: Successfully fetched from https://raw.githubusercontent.com/project-serum/serum-ts/master/packages/serum/src/markets.json
+2025-07-29 16:26:14,208 - INFO - Serum: Found 0 token addresses
+2025-07-29 16:26:14,275 - INFO - Serum: Added 0 new addresses
+2025-07-29 16:26:14,276 - INFO - Total unique addresses so far: 880162
+2025-07-29 16:26:14,276 - INFO - Current progress: 880162 / 10000000 addresses
+2025-07-29 16:26:14,276 - INFO - Starting collection from Additional...
+2025-07-29 16:26:14,276 - INFO - Fetching from additional sources...
+2025-07-29 16:26:14,836 - INFO - Jupiter Strict: Found 1497 tokens
+2025-07-29 16:26:14,836 - INFO - Additional Sources: Found 1496 token addresses
+2025-07-29 16:26:14,837 - INFO - Additional: Added 0 new addresses
+2025-07-29 16:26:14,837 - INFO - Total unique addresses so far: 880162
+2025-07-29 16:26:14,837 - INFO - Current progress: 880162 / 10000000 addresses
+2025-07-29 16:26:14,837 - INFO - Collected 880162 addresses from primary sources
+2025-07-29 16:26:14,837 - INFO - Attempting extended collection to reach target of 10000000
+2025-07-29 16:26:14,837 - INFO - Attempting to reach closer to target through additional collection methods...
+2025-07-29 16:27:30,147 - INFO - Exported 880267 addresses to solana_mint_addresses_3months_to_1year.csv
+2025-07-29 16:27:30,629 - INFO - Also saved to solana_mint_addresses_3months_to_1year.txt
+2025-07-29 16:27:30,665 - INFO - Progress saved at 880267 addresses
+2025-07-29 16:27:30,665 - INFO - Final count: 880267 mint addresses
+2025-07-29 16:27:32,698 - INFO - Exported 880267 addresses to solana_mint_addresses_3months_to_1year.csv
+2025-07-29 16:27:33,037 - INFO - Also saved to solana_mint_addresses_3months_to_1year.txt
+2025-07-29 16:27:33,094 - INFO - Scraping completed successfully!
+2025-07-29 16:27:33,094 - INFO - Total addresses collected: 880267

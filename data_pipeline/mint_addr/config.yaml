@@ -1,0 +1,44 @@
+# Solana Mint Address Scraper Configuration
+
+# Scraping parameters
+target_mint_count: 10000000  # 10M addresses target
+min_months_ago: 3      # Minimum age: 3 months old
+max_months_ago: 12     # Maximum age: 1 year old
+batch_size: 1000
+
+# RPC endpoints (add your own for better performance)
+rpc_endpoints:
+  - "https://api.mainnet-beta.solana.com"
+  - "https://solana-api.projectserum.com"
+  - "https://api.solana.fm"
+  # Add more RPC endpoints here for better reliability:
+  # - "https://your-quicknode-endpoint.com"
+  # - "https://your-helius-endpoint.com"
+  # - "https://your-alchemy-endpoint.com"
+
+# API endpoints for supplemental data
+api_sources:
+  dexscreener:
+    url: "https://api.dexscreener.com/latest/dex/tokens/solana"
+    enabled: true
+  jupiter:
+    url: "https://token.jup.ag/all"
+    enabled: true
+
+# Rate limiting (requests per second)
+rate_limits:
+  rpc_requests_per_second: 10
+  api_requests_per_second: 5
+  batch_delay_seconds: 1
+
+# Output settings
+output:
+  csv_filename: "solana_mint_addresses_3months_to_1year.csv"
+  txt_filename: "solana_mint_addresses_3months_to_1year.txt"
+  checkpoint_filename: "mint_addresses_checkpoint.json"
+  log_filename: "mint_scraper.log"
+
+# Logging configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(levelname)s - %(message)s"

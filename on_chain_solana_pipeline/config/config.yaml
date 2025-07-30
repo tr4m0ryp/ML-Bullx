@@ -1,0 +1,30 @@
+# On-chain Solana pipeline configuration
+database:
+  host: "localhost"
+  port: 5432
+  database: "solana_pipeline"
+  user: "postgres"
+  password: "password"
+
+rpc:
+  # Primary RPC endpoint
+  url: "https://api.mainnet-beta.solana.com"
+  # Helius for enhanced transaction data (optional)
+  helius_url: "https://rpc.helius.xyz"
+  helius_key: ""
+
+programs:
+  # Jupiter V6 Program ID
+  jupiter_v6: "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
+  # Raydium AMM Program ID  
+  raydium_amm: "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"
+  # Orca Whirlpools Program ID
+  orca_whirlpools: "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+  # Token Program
+  token_program: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+
+cache:
+  # Cache prices for this many seconds to avoid redundant queries
+  price_cache_ttl: 60
+  # Cache holder counts for this many seconds
+  holder_cache_ttl: 300

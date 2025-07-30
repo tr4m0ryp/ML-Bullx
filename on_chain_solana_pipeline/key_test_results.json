@@ -1,0 +1,270 @@
+[
+  {
+    "key_num": 1,
+    "api_key": "6b12fb2c...d54e4c87",
+    "basic_health": {
+      "key_num": 1,
+      "status": "success",
+      "response_time": "N/A",
+      "result": "ok"
+    },
+    "enhanced_signatures": [
+      {
+        "key_num": 1,
+        "status": "failed",
+        "address": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+        "error": "HTTP 401",
+        "response": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32401,\"message\":\"api key not found\"}}"
+      },
+      {
+        "key_num": 1,
+        "status": "failed",
+        "address": "So11111111111111111111111111111111111111112",
+        "error": "HTTP 401",
+        "response": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32401,\"message\":\"api key not found\"}}"
+      }
+    ],
+    "enhanced_transaction": {
+      "status": "skipped",
+      "error": "No signature available to test"
+    },
+    "overall_status": "basic_only"
+  },
+  {
+    "key_num": 2,
+    "api_key": "db1528dd...58fb70c4",
+    "basic_health": {
+      "key_num": 2,
+      "status": "success",
+      "response_time": "N/A",
+      "result": "ok"
+    },
+    "enhanced_signatures": [
+      {
+        "key_num": 2,
+        "status": "success",
+        "address": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+        "signatures_count": 5,
+        "first_signature": "2L4h4uaNh8hGzN6L..."
+      },
+      {
+        "key_num": 2,
+        "status": "success",
+        "address": "So11111111111111111111111111111111111111112",
+        "signatures_count": 5,
+        "first_signature": "5CdfQmaMQRXkfJyz..."
+      }
+    ],
+    "enhanced_transaction": {
+      "key_num": 2,
+      "status": "success",
+      "signature": "4KemVk6tgY9hVvzS...",
+      "slot": 356761991,
+      "block_time": 1753892402,
+      "instructions_count": 5
+    },
+    "overall_status": "fully_functional"
+  },
+  {
+    "key_num": 3,
+    "api_key": "30b8e7e2...45774aef",
+    "basic_health": {
+      "key_num": 3,
+      "status": "success",
+      "response_time": "N/A",
+      "result": "ok"
+    },
+    "enhanced_signatures": [
+      {
+        "key_num": 3,
+        "status": "failed",
+        "address": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+        "error": "HTTP 401",
+        "response": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32401,\"message\":\"api key not found\"}}"
+      },
+      {
+        "key_num": 3,
+        "status": "failed",
+        "address": "So11111111111111111111111111111111111111112",
+        "error": "HTTP 401",
+        "response": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32401,\"message\":\"api key not found\"}}"
+      }
+    ],
+    "enhanced_transaction": {
+      "status": "skipped",
+      "error": "No signature available to test"
+    },
+    "overall_status": "basic_only"
+  },
+  {
+    "key_num": 4,
+    "api_key": "2d8b5f7e...fa8126ff",
+    "basic_health": {
+      "key_num": 4,
+      "status": "success",
+      "response_time": "N/A",
+      "result": "ok"
+    },
+    "enhanced_signatures": [
+      {
+        "key_num": 4,
+        "status": "success",
+        "address": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+        "signatures_count": 5,
+        "first_signature": "5oABZnvcb76se4mi..."
+      },
+      {
+        "key_num": 4,
+        "status": "success",
+        "address": "So11111111111111111111111111111111111111112",
+        "signatures_count": 5,
+        "first_signature": "2jiFj4C4156CMzTR..."
+      }
+    ],
+    "enhanced_transaction": {
+      "key_num": 4,
+      "status": "success",
+      "signature": "jWazvN5csmGGZ96t...",
+      "slot": 356761999,
+      "block_time": 1753892405,
+      "instructions_count": 5
+    },
+    "overall_status": "fully_functional"
+  },
+  {
+    "key_num": 5,
+    "api_key": "55b9908d...cec80e45",
+    "basic_health": {
+      "key_num": 5,
+      "status": "success",
+      "response_time": "N/A",
+      "result": "ok"
+    },
+    "enhanced_signatures": [
+      {
+        "key_num": 5,
+        "status": "success",
+        "address": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+        "signatures_count": 5,
+        "first_signature": "38NX5qnUCgRC5YxS..."
+      },
+      {
+        "key_num": 5,
+        "status": "success",
+        "address": "So11111111111111111111111111111111111111112",
+        "signatures_count": 5,
+        "first_signature": "4EPHwFvS16qT89ZN..."
+      }
+    ],
+    "enhanced_transaction": {
+      "key_num": 5,
+      "status": "success",
+      "signature": "3Z1zGNbVHZ9qscBX...",
+      "slot": 356762004,
+      "block_time": 1753892407,
+      "instructions_count": 5
+    },
+    "overall_status": "fully_functional"
+  },
+  {
+    "key_num": 6,
+    "api_key": "cc778adb...6f663c16",
+    "basic_health": {
+      "key_num": 6,
+      "status": "success",
+      "response_time": "N/A",
+      "result": "ok"
+    },
+    "enhanced_signatures": [
+      {
+        "key_num": 6,
+        "status": "failed",
+        "address": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+        "error": "HTTP 401",
+        "response": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32401,\"message\":\"Unauthorized\"}}"
+      },
+      {
+        "key_num": 6,
+        "status": "failed",
+        "address": "So11111111111111111111111111111111111111112",
+        "error": "HTTP 401",
+        "response": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32401,\"message\":\"Unauthorized\"}}"
+      }
+    ],
+    "enhanced_transaction": {
+      "status": "skipped",
+      "error": "No signature available to test"
+    },
+    "overall_status": "basic_only"
+  },
+  {
+    "key_num": 7,
+    "api_key": "0b2c2894...d6ff1671",
+    "basic_health": {
+      "key_num": 7,
+      "status": "success",
+      "response_time": "N/A",
+      "result": "ok"
+    },
+    "enhanced_signatures": [
+      {
+        "key_num": 7,
+        "status": "success",
+        "address": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+        "signatures_count": 5,
+        "first_signature": "LFvyhCdYjcMPPHi8..."
+      },
+      {
+        "key_num": 7,
+        "status": "success",
+        "address": "So11111111111111111111111111111111111111112",
+        "signatures_count": 5,
+        "first_signature": "2HuJnLRDAhBsTviD..."
+      }
+    ],
+    "enhanced_transaction": {
+      "key_num": 7,
+      "status": "success",
+      "signature": "2QxM5uBLW9GpnPu1...",
+      "slot": 356762012,
+      "block_time": 1753892410,
+      "instructions_count": 3
+    },
+    "overall_status": "fully_functional"
+  },
+  {
+    "key_num": 8,
+    "api_key": "f96f1101...a8526a0d",
+    "basic_health": {
+      "key_num": 8,
+      "status": "success",
+      "response_time": "N/A",
+      "result": "ok"
+    },
+    "enhanced_signatures": [
+      {
+        "key_num": 8,
+        "status": "success",
+        "address": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+        "signatures_count": 5,
+        "first_signature": "3rDZunZBsadiGmPV..."
+      },
+      {
+        "key_num": 8,
+        "status": "success",
+        "address": "So11111111111111111111111111111111111111112",
+        "signatures_count": 5,
+        "first_signature": "s6NbqyumMenY4nYx..."
+      }
+    ],
+    "enhanced_transaction": {
+      "key_num": 8,
+      "status": "success",
+      "signature": "Ronohg1aSnhKZyLU...",
+      "slot": 356762017,
+      "block_time": 1753892412,
+      "instructions_count": 7
+    },
+    "overall_status": "fully_functional"
+  }
+]
