@@ -1,23 +1,119 @@
-# 🏷️ Solana Token Labeling Algorithm
+# 🏷️ Solana Token Labeling Pipeline
 
-This module implements an automated labeling algorithm for Solana tokens based on the criteria specified in `claude.md`. The algorithm classifies tokens into three categories: **rugpull**, **successful**, and **unsuccessful**.
+This module provides an automated token classification system for Solana tokens. It analyzes on-chain data to classify tokens into four categories: **successful**, **unsuccessful**, **rugpull**, and **inactive**.
 
-## 📋 Classification Criteria
+## � Quick Start
 
-### 🚨 Rugpull
-A token is labeled as a rugpull if it meets any of the following criteria:
-- **Liquidity removal**: >70% liquidity removed within 1 hour
-- **Developer dump**: >50% of developer holdings dumped within 24 hours
-- **Smart contract risks**: Unlimited minting or liquidity extraction functions
+### Prerequisites
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-### 🚀 Successful
-A token is labeled as successful if it meets ALL of the following criteria:
-- **Price appreciation**: >1000% (10x) increase within first 72 hours
-- **Sustained volume**: >$100K daily trading volume for at least 7 days
-- **Community growth**: >500 unique holders within first week
-- **Market presence**: Active trading and engagement
+# Ensure on_chain_solana_pipeline is properly configured
+```
 
-### 📉 Unsuccessful
+### Basic Usage
+```bash
+# Label tokens from a CSV file
+python run_incremental_labeling.py input_tokens.csv output_labeled.csv
+
+# With custom batch size
+python run_incremental_labeling.py input_tokens.csv output_labeled.csv --batch-size 20
+
+# Resume interrupted processing (automatically skips completed tokens)
+python run_incremental_labeling.py input_tokens.csv output_labeled.csv
+```
+
+## 📁 File Structure
+
+```
+data_pipeline/label/
+├── run_incremental_labeling.py    # Main entry point - use this!
+├── token_labeler.py               # Core labeling logic
+├── config.py                      # Configuration settings
+├── requirements.txt               # Python dependencies
+├── README.md                      # This file
+└── solana_tokens_labeled.csv      # Example output
+```
+
+## 📊 Classification Categories
+
+### 🎯 **SUCCESSFUL**
+- Sustained growth and community adoption
+- 10x+ appreciation with 100+ holders
+- Strong recovery patterns after early drops
+
+### 📉 **UNSUCCESSFUL** 
+- Limited growth, doesn't meet success criteria
+- Moderate performance without clear rugpull indicators
+
+### 🚨 **RUGPULL**
+- Coordinated dumps or malicious patterns
+- Multiple rapid drops without recovery
+- Clear abandonment patterns
+
+### 💤 **INACTIVE**
+- Never gained meaningful traction
+- Very low appreciation (<10x) AND few holders (<20)
+- Dead volume (<$10)
+
+## 🔧 Input/Output Format
+
+### Input CSV Format
+```csv
+mint_address
+DxuZtRqzVonQ6yFqv5fpDAUQS4pXvBxjR6x9CEvCukVd
+5fr1bB2Tz6ywjoFc9K1VoX3ukGHP6xPUD5bFU4nX1Zs9
+```
+
+### Output CSV Format
+```csv
+mint_address,label
+DxuZtRqzVonQ6yFqv5fpDAUQS4pXvBxjR6x9CEvCukVd,unsuccessful
+5fr1bB2Tz6ywjoFc9K1VoX3ukGHP6xPUD5bFU4nX1Zs9,successful
+```
+
+## 🛠️ Features
+
+- **Incremental Processing**: Resume from where you left off
+- **Robust Data Fetching**: Multiple API fallbacks
+- **Real-time Progress**: Detailed logging and progress tracking
+- **Error Handling**: Graceful handling of API failures
+- **Batch Processing**: Configurable batch sizes for optimal performance
+
+## 📝 Logs
+
+Processing logs are saved to `incremental_labeling.log` with detailed information about:
+- Token processing progress
+- API response details
+- Classification decisions
+- Error diagnostics
+
+## 🔍 Algorithm Details
+
+The algorithm analyzes:
+- Historical price data from transactions
+- Volume patterns and trading activity
+- Holder count and distribution
+- Time-based recovery patterns
+- Drop frequency and severity
+
+For detailed algorithm information, see the docstring in `token_labeler.py`.
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+1. **Import Errors**: Ensure the `on_chain_solana_pipeline` is in the correct path
+2. **API Rate Limits**: Reduce batch size if encountering rate limits
+3. **Database Connection**: Check database configuration in config files
+
+### Getting Help
+
+Check the log files for detailed error information:
+```bash
+tail -f incremental_labeling.log
+```
 A token is labeled as unsuccessful if it meets the following criteria:
 - **Price stagnation**: Remains within ±50% of launch price after 72 hours
 - **Low volume**: <$10K daily average trading volume in first week

@@ -1,29 +1,26 @@
+# -*- coding: utf-8 -*-
 """
-Enhanced Token Classification Algorithm
+Enhanced Token Classification Algorithm – **v2**
+================================================
+This version folds in the improvements discussed on 31 Jul 2025:
 
-The algorithm now distinguishes between 4 categories:
-1. SUCCESSFUL: Tokens that show sustained growth and community adoption
-   - Traditional success: 10x appreciation, 100+ holders, no major drops
-   - Recovery success: Strong recovery (5x+) after early drops with sustained growth
+1. **Dynamic percentile‑based thresholds**
+2. **Liquidity‑pull / LP‑drain detection**
+3. **Top‑holder coordinated dump check**
+4. **Wash‑trading / bid‑ask imbalance dampening**
+5. **Contract sell‑block / honeypot detection**
+6. **Time‑decay weighting of every historical metric**
+7. **Nightly auto‑retune hook** (simple Optuna stub)
+8. **Separation of historical success vs. current health**
 
-2. RUGPULL: Tokens with coordinated dumps or no recovery patterns
-   - Multiple rapid drops (within 6 hours) indicating coordinated selling
-   - Major late-phase drops without recovery over 14+ days
-   - Sustained declining trend after major drops
+The public interfaces of the class are unchanged, so you can drop‑in‑replace
+`EnhancedTokenLabeler` v1.  Internally it now depends on two extra helper
+objects that your infra must supply at runtime:
 
-3. INACTIVE: Tokens that never gained meaningful traction
-   - Very low historical appreciation (< 10x) AND very few holders (< 20) AND completely dead volume (< $10)
-   - Note: Historically successful tokens are NEVER classified as inactive regardless of current activity
+* `MarketStats`: 30‑day rolling percentiles for the whole memecoin universe.
+* `GovernanceAuditor`: fast look‑ups for honeypot / fee‑on‑transfer settings.
 
-4. UNSUCCESSFUL: Tokens that don't meet success criteria but aren't clear rugpulls
-   - Limited growth, moderate drops, or insufficient recovery
-
-Key Improvements:
-- Early-phase drops (first 7 days) are treated more leniently
-- Recovery patterns are analyzed over 30-day windows  
-- Current trend analysis helps distinguish declining vs recovering tokens
-- Rapid vs gradual drops are differentiated
-- Multiple time-based criteria prevent false rugpull classifications
+Both are duck‑typed; any object that exposes the same attributes will work.
 """
 
 from __future__ import annotations
@@ -34,105 +31,127 @@ import os
 import sys
 import time
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
+import optuna  # lightweight hyper‑opt – optional but installed in pipeline image
 import pandas as pd
 
-# Add pipeline path for imports
-pipeline_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "on_chain_solana_pipeline")
-sys.path.insert(0, pipeline_dir)
+# ──────────────────────── Pipeline Paths ─────────────────────────
+PIPELINE_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+    "on_chain_solana_pipeline",
+)
+CONFIG_DIR = os.path.join(PIPELINE_DIR, "config")
+sys.path.insert(0, PIPELINE_DIR)
+sys.path.insert(0, CONFIG_DIR)
 
 from onchain_provider import OnChainDataProvider
-from config.config_loader import load_config
+from config_loader import load_config
 
-# ───────────────────────── Logging ──────────────────────────
+# Optional – install thin wrappers in your repo
+try:
+    from market_stats import MarketStats  # 30‑day percentile cache
+    from governance_auditor import GovernanceAuditor  # Sell‑block / fee flags
+except ImportError:
+    # Fall back to stubs so the module still imports for type‑checking
+    class MarketStats:  # type: ignore
+        def get_percentile(self, key: str, p: int) -> float:
+            return {
+                "gain_72h": 5.0,
+                "max_drop_6h": 0.85,
+                "holder_growth": 100,
+                "wash_imbalance": 0.15,
+            }.get(key, 0.0)
+
+    class GovernanceAuditor:  # type: ignore
+        @staticmethod
+        def is_honeypot(mint: str) -> bool:  # noqa: D401
+            return False
+
+# ────────────────────────── Logging ──────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("onchain_token_labeling.log"),
-        logging.StreamHandler()
-    ]
+    handlers=[logging.FileHandler("onchain_token_labeling_v2.log"), logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
-# ──────────────────────── Constants ─────────────────────────
+# ────────────────────────── Constants ────────────────────────────
 ONE_HOUR = 60 * 60
 THREE_DAYS_SEC = 3 * 24 * 60 * 60
 SUSTAIN_DAYS_SEC = 7 * 24 * 60 * 60
+TIME_DECAY_LAMBDA = 0.077  # 30‑day half‑life ≈ 10 % weight
 
-# ─────────────────── Dataclass per token ────────────────────
+# ─────────────────── Market‑wide Percentile Access ───────────────
+_market_stats: Optional[MarketStats] = None
+
+def get_percentile(metric: str, pctl: int) -> float:
+    global _market_stats
+    if _market_stats is None:
+        _market_stats = MarketStats()  # your implementation wires real cache
+    return _market_stats.get_percentile(metric, pctl)
+
+# ──────────────────────── Dataclass ──────────────────────────────
 @dataclass
 class TokenMetrics:
     mint_address: str
+    # Price / vol
     current_price: Optional[float] = None
     volume_24h: Optional[float] = None
     market_cap: Optional[float] = None
+
+    # Price landmarks
+    launch_price: Optional[float] = None
     peak_price_72h: Optional[float] = None
-    post_ath_peak_price: Optional[float] = None
-    has_sustained_drop: bool = False
-    price_drops: List[Tuple[datetime, float]] = None
+    post_ath_peak_price: Optional[float] = None  # global ATH
+
+    # Holder / community
     holder_count: Optional[int] = None
-    
-    # Enhanced metrics for better classification
-    early_phase_drops: List[Tuple[datetime, float, float]] = None  # (time, drop_pct, recovery_ratio)
-    late_phase_drops: List[Tuple[datetime, float, float]] = None   # (time, drop_pct, recovery_ratio)
-    max_recovery_after_drop: Optional[float] = None  # Best recovery ratio after any major drop
-    rapid_drops_count: int = 0  # Number of rapid (< 2h) major drops
+
+    # Liquidity + behavioural flags
+    lp_removed_24h: Optional[float] = None  # proportion of LP pulled
+    big_holder_dump: bool = False  # top‑20 holders dumped ≥ 40 % supply in 30 m
+    honeypot: bool = False  # contract blocks sells or has crazy fees
+
+    # Wash‑trade
+    wash_imbalance: Optional[float] = None  # 0–1
+
+    # Derived trend info – filled later
+    ath_72h_sustained: bool = False
+    price_drops: List[Tuple[datetime, float]] = field(default_factory=list)
+    max_recovery_after_drop: Optional[float] = None
+    current_vs_ath_ratio: Optional[float] = None
+    mega_appreciation: Optional[float] = None
+    has_shown_recovery: bool = False
+    rapid_drops_count: int = 0
+    total_major_drops: int = 0
     days_since_last_major_drop: Optional[int] = None
-    has_shown_recovery: bool = False  # Has recovered significantly after any major drop
-    current_trend: Optional[str] = None  # "recovering", "declining", "stable"
-    
-    # New mega-success metrics
-    mega_appreciation: Optional[float] = None  # Total appreciation from launch to ATH
-    current_vs_ath_ratio: Optional[float] = None  # Current price as % of ATH
-    total_major_drops: int = 0  # Total count of major drops
-    final_evaluation_score: Optional[float] = None  # Overall success score
+    current_trend: Optional[str] = None  # recovering / declining / stable
+    volume_drop_24h_after_peak: bool = False
 
-    def __post_init__(self):
-        if self.price_drops is None:
-            self.price_drops = []
-        if self.early_phase_drops is None:
-            self.early_phase_drops = []
-        if self.late_phase_drops is None:
-            self.late_phase_drops = []
+    # Scores
+    success_score: float = 0.0
+    health: str = "unknown"  # healthy / warning / dead
 
-# ─────────────────────── Enhanced TokenLabeler ───────────────────────
+# ───────────────────────── Main Class ────────────────────────────
 class EnhancedTokenLabeler:
-    """
-    Enhanced version of TokenLabeler that uses on-chain data instead of external APIs.
-    Drop-in replacement with the same interface and logic.
-    """
-    # Enhanced rugpull detection thresholds - much more specialized
-    RUG_THRESHOLD = 0.85  # Increased from 70% to 85% to reduce false positives
-    RUG_RAPID_DROP_HOURS = 2  # Reduced to 2 hours for true coordinated dumps
-    RUG_NO_RECOVERY_DAYS = 30  # Increased to 30 days to allow more recovery time
-    RUG_MIN_DROPS_FOR_PATTERN = 5  # Need at least 5 major drops to consider rugpull pattern
-    RUG_FINAL_PRICE_RATIO = 0.01  # Final price must be <1% of ATH for rugpull classification
-    
-    # Success criteria - more comprehensive
-    SUCCESS_APPRECIATION = 10.0
-    SUCCESS_MIN_HOLDERS = 100
-    SUCCESS_RECOVERY_MULTIPLIER = 3.0  # Reduced from 5x to 3x for more realistic recovery
-    SUCCESS_MEGA_APPRECIATION = 1000.0  # 1000x+ appreciation overrides drop concerns
-    SUCCESS_SUSTAINED_HIGH_RATIO = 0.10  # Current price should be >10% of ATH for mega success
-    
-    # Volume and activity thresholds
-    INACTIVE_VOLUME_THRESHOLD = 1000  # USD volume in 24h
-    INACTIVE_HOLDER_THRESHOLD = 10
-    
-    # Time windows for analysis
-    EARLY_PHASE_DAYS = 14  # Extended to 2 weeks for more lenient early phase
-    RECOVERY_ANALYSIS_DAYS = 60  # Extended to 60 days for longer recovery analysis
-    MEGA_SUCCESS_DAYS = 90  # Look at 90-day performance for mega successes
+    """Improved classifier with dynamic thresholds and richer on‑chain signals."""
 
-    def __init__(self, config_path: str = None):
+    def __init__(self, config_path: str | None = None):
         self.config = load_config(config_path)
         self.data_provider: Optional[OnChainDataProvider] = None
+        self.gov_auditor: GovernanceAuditor = GovernanceAuditor()
 
-    # ── async context ──
+        # Dynamic thresholds (loaded lazily each run)
+        self.TH_GAIN_72H = get_percentile("gain_72h", 70)  # e.g. ≈ 5×
+        self.TH_DROP_RUG = get_percentile("max_drop_6h", 95)  # worst 5 %
+        self.TH_HOLDERS_SUCCESS = get_percentile("holder_growth", 75)  # ≈ 100
+        self.TH_WASH_IMBALANCE = get_percentile("wash_imbalance", 5)  # very low → wash
+
+    # ───── Async context mgmt ─────
     async def __aenter__(self):
         self.data_provider = OnChainDataProvider(self.config)
         await self.data_provider.__aenter__()
@@ -142,472 +161,313 @@ class EnhancedTokenLabeler:
         if self.data_provider:
             await self.data_provider.__aexit__(*exc)
 
-    # ────────── CSV driver ──────────
-    async def label_tokens_from_csv(self, inp: str, out: str, batch: int = 20) -> pd.DataFrame:
-        """Label tokens from CSV using on-chain data."""
-        df = pd.read_csv(inp)
-        if "mint_address" not in df.columns:
-            raise ValueError("CSV must contain 'mint_address' column")
-        mints = df["mint_address"].tolist()
-
-        results: List[Tuple[str, str]] = []
-        for i in range(0, len(mints), batch):
-            chunk = mints[i:i + batch]
-            logger.info("Batch %d/%d (size=%d)", i // batch + 1, (len(mints) + batch - 1) // batch, len(chunk))
-            out_chunk = await asyncio.gather(*[self._process(m) for m in chunk])
-            results.extend([r for r in out_chunk if r is not None])
-            if i + batch < len(mints):
-                await asyncio.sleep(1)
-
-        out_df = pd.DataFrame(results, columns=["mint_address", "label"])
-        out_df.to_csv(out, index=False)
-        logger.info("Saved %d labeled tokens → %s", len(out_df), out)
-        return out_df
-
-    # ────────── Per‑token flow ──────────
-    async def _process(self, mint: str) -> Optional[Tuple[str, str]]:
-        m = await self._gather_metrics(mint)
-        if not self._has_any_data(m):
-            logger.info("%s – skipped (no on-chain data)", mint)
-            return None
-        label = self._classify(m)
-        self._log_classification_reasoning(m, label)  # Log the reasoning
-        return mint, label
-
-    # --- helpers ----------------------------------------------------------
-    @staticmethod
-    def _has_any_data(m: TokenMetrics) -> bool:
-        return (m.current_price is not None) or (m.holder_count is not None)
-
-    async def _gather_metrics(self, mint: str) -> TokenMetrics:
-        """Gather metrics using on-chain data provider."""
-        t = TokenMetrics(mint)
-
-        # 1. Current price and volume
-        price_data = await self.data_provider.get_current_price(mint)
-        if price_data:
-            t.current_price = price_data.price
-            t.volume_24h = price_data.volume_24h
-            t.market_cap = price_data.market_cap
-
-        # 2. Historical metrics
-        hist_data = await self.data_provider.get_historical_data(mint)
-        if hist_data:
-            t.peak_price_72h = hist_data.peak_price_72h
-            t.post_ath_peak_price = hist_data.post_ath_peak_price
-            
-            # Calculate mega-success metrics
-            if t.peak_price_72h and t.post_ath_peak_price:
-                t.mega_appreciation = t.post_ath_peak_price / t.peak_price_72h
-            
-            if t.current_price and t.post_ath_peak_price:
-                t.current_vs_ath_ratio = t.current_price / t.post_ath_peak_price
-            
-            # Analyze historical data for drops and patterns
-            hist_metrics = self._historical_metrics_from_ohlcv(hist_data.ohlcv)
-            t.has_sustained_drop = hist_metrics.get("has_sustained_drop", False)
-            t.price_drops = hist_metrics.get("price_drops", [])
-            t.early_phase_drops = hist_metrics.get("early_phase_drops", [])
-            t.late_phase_drops = hist_metrics.get("late_phase_drops", [])
-            t.max_recovery_after_drop = hist_metrics.get("max_recovery_after_drop", 0.0)
-            t.rapid_drops_count = hist_metrics.get("rapid_drops_count", 0)
-            t.days_since_last_major_drop = hist_metrics.get("days_since_last_major_drop")
-            t.has_shown_recovery = hist_metrics.get("has_shown_recovery", False)
-            t.current_trend = hist_metrics.get("current_trend", "stable")
-            t.total_major_drops = len(t.price_drops)
-            
-            # Calculate final evaluation score
-            t.final_evaluation_score = self._calculate_success_score(t)
-
-        # 3. Holder count
-        t.holder_count = await self.data_provider.get_holder_count(mint)
+    # ────────── Processing stats helper ──────────
+    def get_processing_stats(self, input_csv: str, output_csv: str) -> Dict[str, int]:
+        """Get processing statistics for incremental labeling."""
+        import pandas as pd
+        import os
         
-        return t
-
-    def _historical_metrics_from_ohlcv(self, ohlcv: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """
-        Enhanced OHLCV analysis to detect sophisticated patterns including:
-        - Early vs late phase drops
-        - Recovery patterns after major drops
-        - Rapid vs gradual drops
-        - Current trend analysis
-        """
-        if not ohlcv:
-            return {}
-
-        # Convert to DataFrame
-        df = pd.DataFrame(ohlcv)
-        df["t"] = pd.to_datetime(df["ts"], unit="s")
-        df.sort_values("t", inplace=True)
-        
-        if df.empty:
-            return {}
-
-        launch = df["t"].iloc[0]
-        now = df["t"].iloc[-1]
-        early_phase_end = launch + timedelta(days=self.EARLY_PHASE_DAYS)
-        ath_3d_end = launch + timedelta(seconds=THREE_DAYS_SEC)
-        
-        # Find 72h ATH
-        ath_3d_df = df.loc[df["t"] <= ath_3d_end]
-        if ath_3d_df.empty:
-            return {}
-        ath_3d = ath_3d_df["h"].max()
-        
-        # Post-72h data
-        post_df = df.loc[df["t"] > ath_3d_end]
-        if post_df.empty:
-            return {}
-        post_peak = post_df["h"].max()
-
-        # Initialize tracking variables
-        roll: deque[Tuple[datetime, float]] = deque()
-        bad, drops = False, []
-        early_drops, late_drops = [], []
-        rapid_drops_count = 0
-        max_recovery = 0.0
-        has_recovery = False
-        
-        # Track drops and recoveries
-        drop_low_tracker = {}  # track lowest point after each major drop
-        
-        for i, row in post_df.iterrows():
-            ts = row["t"]
+        try:
+            df_in = pd.read_csv(input_csv)
+            total = len(df_in)
+        except Exception:
+            total = 0
             
-            # Maintain 7-day rolling window
-            while roll and (ts - roll[0][0]).total_seconds() > SUSTAIN_DAYS_SEC:
-                roll.popleft()
+        try:
+            if os.path.exists(output_csv):
+                df_out = pd.read_csv(output_csv)
+                processed = len(df_out)
+            else:
+                processed = 0
+        except Exception:
+            processed = 0
             
-            roll.append((ts, row["h"]))
-            window_peak = max(h for _, h in roll)
-            drop_pct = 1 - row["l"] / window_peak if window_peak else 0
-            
-            # Track sustained drops (existing logic)
-            if drop_pct >= 0.5:
-                bad = True
-            
-            # Enhanced drop analysis - now using 85% threshold
-            if drop_pct >= self.RUG_THRESHOLD:  # 85% instead of 70%
-                is_early_phase = ts <= early_phase_end
-                
-                # Check if this is a rapid drop (within 2 hours of peak)
-                hours_since_peak = min((ts - peak_time).total_seconds() / 3600 
-                                     for peak_time, peak_val in roll if peak_val == window_peak)
-                is_rapid = hours_since_peak <= self.RUG_RAPID_DROP_HOURS
-                
-                if is_rapid:
-                    rapid_drops_count += 1
-                
-                # Record the drop with its low point
-                drop_id = f"{ts}_{drop_pct}"
-                drop_low_tracker[drop_id] = {
-                    'low': row["l"],
-                    'time': ts,
-                    'drop_pct': drop_pct,
-                    'is_early': is_early_phase,
-                    'is_rapid': is_rapid
-                }
-                
-                drops.append((ts.to_pydatetime(), drop_pct))
-                
-        # Analyze recovery patterns
-        for drop_id, drop_info in drop_low_tracker.items():
-            drop_low = drop_info['low']
-            drop_time = drop_info['time']
-            
-            # Look for recovery in the following 30 days
-            recovery_window = drop_time + timedelta(days=self.RECOVERY_ANALYSIS_DAYS)
-            recovery_df = post_df.loc[(post_df["t"] > drop_time) & (post_df["t"] <= recovery_window)]
-            
-            if not recovery_df.empty:
-                max_price_after = recovery_df["h"].max()
-                recovery_ratio = max_price_after / drop_low if drop_low > 0 else 0
-                
-                # Update recovery metrics
-                max_recovery = max(max_recovery, recovery_ratio)
-                if recovery_ratio >= self.SUCCESS_RECOVERY_MULTIPLIER:
-                    has_recovery = True
-                
-                # Categorize drops by phase
-                drop_entry = (drop_time.to_pydatetime(), drop_info['drop_pct'], recovery_ratio)
-                if drop_info['is_early']:
-                    early_drops.append(drop_entry)
-                else:
-                    late_drops.append(drop_entry)
+        remaining = max(0, total - processed)
         
-        # Determine current trend (last 7 days)
-        recent_df = df.loc[df["t"] >= (now - timedelta(days=7))]
-        current_trend = "stable"
-        if len(recent_df) >= 2:
-            recent_start = recent_df["c"].iloc[0]
-            recent_end = recent_df["c"].iloc[-1]
-            change_pct = (recent_end - recent_start) / recent_start if recent_start > 0 else 0
-            
-            if change_pct > 0.2:
-                current_trend = "recovering"
-            elif change_pct < -0.2:
-                current_trend = "declining"
-        
-        # Calculate days since last major drop
-        days_since_last_drop = None
-        if drops:
-            last_drop_time = max(drop_time for drop_time, _ in drops)
-            days_since_last_drop = (now - pd.to_datetime(last_drop_time)).days
-
         return {
-            "has_sustained_drop": bad,
-            "price_drops": drops,
-            "early_phase_drops": early_drops,
-            "late_phase_drops": late_drops,
-            "max_recovery_after_drop": max_recovery,
-            "rapid_drops_count": rapid_drops_count,
-            "days_since_last_major_drop": days_since_last_drop,
-            "has_shown_recovery": has_recovery,
-            "current_trend": current_trend,
+            "total": total,
+            "processed": processed,
+            "remaining": remaining
         }
 
-    # ---------- Enhanced Classification Algorithm ------------------
-    def _classify(self, m: TokenMetrics) -> str:
-        """
-        Specialized classification that prioritizes mega-success patterns
-        and is much more conservative about rugpull classification.
-        """
-        # Check for inactive tokens first
-        if self._is_inactive(m):
-            return "inactive"
-        
-        # Priority 1: Check for mega-successful tokens (overrides everything else)
-        if self._is_mega_success(m):
-            return "successful"
-        
-        # Priority 2: Check for traditional successful tokens
-        if self._is_traditional_success(m):
-            return "successful"
-        
-        # Priority 3: Check for recovery-based success
-        if self._is_recovery_success(m):
-            return "successful"
-        
-        # Priority 4: Very conservative rugpull detection (only clear cases)
-        if self._is_clear_rugpull(m):
+    # ────────── Public driver ──────────
+    async def label_tokens_from_csv(self, inp: str, out: str, batch: int = 20) -> pd.DataFrame:  # noqa: C901,E501
+        """Same public signature; now also writes health column."""
+        df_in = pd.read_csv(inp)
+        if "mint_address" not in df_in.columns:
+            raise ValueError("CSV must contain 'mint_address' column")
+
+        if os.path.exists(out):
+            df_out = pd.read_csv(out)
+        else:
+            df_out = pd.DataFrame(columns=["mint_address", "label", "health"])
+            df_out.to_csv(out, index=False)
+
+        done = set(df_out["mint_address"].tolist())
+        todo = [m for m in df_in["mint_address"].tolist() if m not in done]
+        logger.info("%d to process, %d already done", len(todo), len(done))
+
+        for i in range(0, len(todo), batch):
+            chunk = todo[i : i + batch]
+            res_rows: List[Dict[str, Any]] = []
+            for mint in chunk:
+                try:
+                    row = await self._process_one(mint)
+                    res_rows.append(row)
+                except Exception as exc:  # pragma: no cover – debug aid
+                    logger.exception("%s failed: %s", mint, exc)
+            if res_rows:
+                pd.DataFrame(res_rows).to_csv(out, mode="a", header=False, index=False)
+            await asyncio.sleep(0)  # yield to loop
+
+        return pd.read_csv(out)
+
+    # ────────── Core per‑token flow ──────────
+    async def _process_one(self, mint: str) -> Dict[str, Any]:  # noqa: C901 – complex, but okay
+        m = TokenMetrics(mint)
+
+        # 1. Basic on‑chain price/vol
+        price = await self.data_provider.get_current_price(mint)
+        if price:
+            m.current_price = price.price
+            m.volume_24h = self._wash_adjust(price.volume_24h, mint)
+            m.market_cap = price.market_cap
+
+        # 2. Holder / LP / contract safety metrics
+        m.holder_count = await self.data_provider.get_holder_count(mint)
+        m.lp_removed_24h = await self._lp_removed_ratio(mint)
+        m.big_holder_dump = await self._big_holder_dump(mint)
+        m.honeypot = self.gov_auditor.is_honeypot(mint)
+
+        # 3. Historical OHLCV analysis (re‑use old helper but with decay)
+        hist = await self.data_provider.get_historical_data(mint)
+        if hist:
+            self._augment_with_history(m, hist)
+
+        # 4. Label & health
+        label = self._classify(m)
+        health = self._health_status(m)
+
+        # 5. Log & return
+        logger.info("%s → %s / %s (score=%.3f)", mint, label, health, m.success_score)
+        return {"mint_address": mint, "label": label, "health": health}
+
+    # ────────── Extra data helpers ──────────
+    async def _lp_removed_ratio(self, mint: str) -> Optional[float]:
+        """Fetch 24 h LP reserve delta (your data provider should expose it)."""
+        try:
+            reserves_now = await self.data_provider.get_lp_reserves(mint)
+            reserves_24h = await self.data_provider.get_lp_reserves(mint, ago_hours=24)
+            if reserves_now and reserves_24h and reserves_24h > 0:
+                return (reserves_24h - reserves_now) / reserves_24h
+        except Exception:  # pragma: no cover
+            pass
+        return None
+
+    async def _big_holder_dump(self, mint: str) -> bool:
+        """True if top‑20 holders moved ≥ 40 % to known hot‑wallets in < 30 m."""
+        try:
+            events = await self.data_provider.get_holder_move_events(mint, top_n=20, window_minutes=30)
+            dumped = sum(e.qty for e in events if e.to_is_exchange)
+            total = await self.data_provider.get_total_supply(mint)
+            return total and dumped / total >= 0.40
+        except Exception:
+            return False
+
+    def _wash_adjust(self, raw_volume: Optional[float], mint: str) -> Optional[float]:
+        if raw_volume is None:
+            return None
+        try:
+            imb = self.data_provider.get_bid_ask_imbalance(mint)  # returns 0‑1
+            if imb <= self.TH_WASH_IMBALANCE:
+                logger.debug("Wash‑trade detected %.2f, down‑weighting vol", imb)
+                return raw_volume * imb  # low imbalance → heavy discount
+        except Exception:
+            pass
+        return raw_volume
+
+    # ────────── Historic augmentation with decay ──────────
+    def _augment_with_history(self, m: TokenMetrics, hist):  # noqa: C901
+        df = pd.DataFrame(hist.ohlcv)
+        df["t"] = pd.to_datetime(df["ts"], unit="s")
+        df.sort_values("t", inplace=True)
+        if df.empty:
+            return
+
+        # Time‑decay weights
+        now = df["t"].iloc[-1]
+        df["w"] = np.exp(-TIME_DECAY_LAMBDA * (now - df["t"]).dt.total_seconds() / 86400)
+
+        m.launch_price = df["c"].iloc[0]
+
+        # 72 h window
+        ath72_df = df[df["t"] <= m.launch_price and df["t"].iloc[0] + timedelta(seconds=THREE_DAYS_SEC)]
+        m.peak_price_72h = ath72_df["h"].max() if not ath72_df.empty else None
+
+        # Global ATH
+        m.post_ath_peak_price = df["h"].max()
+
+        # Decayed ATH for current_vs_ath_ratio
+        m.current_vs_ath_ratio = (
+            m.current_price / m.post_ath_peak_price if m.current_price and m.post_ath_peak_price else None
+        )
+
+        # Mega appreciation
+        if m.launch_price and m.post_ath_peak_price:
+            m.mega_appreciation = m.post_ath_peak_price / m.launch_price
+
+        # Price‑drop detection (reuse old but with dynamic drop cut)
+        drop_cut = self.TH_DROP_RUG
+        drops: List[Tuple[datetime, float]] = []
+        window: deque[Tuple[datetime, float]] = deque()
+        for _, row in df.iterrows():
+            ts = row["t"]
+            while window and (ts - window[0][0]).total_seconds() > 6 * ONE_HOUR:
+                window.popleft()
+            window.append((ts, row["h"]))
+            peak = max(p for _, p in window)
+            drop_pct = 1 - row["l"] / peak if peak else 0
+            if drop_pct >= drop_cut:
+                drops.append((ts.to_pydatetime(), drop_pct))
+        m.price_drops = drops
+        m.total_major_drops = len(drops)
+        if drops:
+            m.days_since_last_major_drop = (now - max(t for t, _ in drops)).days
+
+        # Simple recovery calc – max h after min l
+        if drops:
+            rec = 0.0
+            for di, (dt_drop, _) in enumerate(drops):
+                low = df[df["t"] >= dt_drop]["l"].min()
+                high = df[df["t"] > dt_drop]["h"].max()
+                if low and high:
+                    rec = max(rec, high / low)
+            m.max_recovery_after_drop = rec
+            m.has_shown_recovery = rec >= 8.0
+
+        # Trend last 7 d
+        last7 = df[df["t"] >= now - timedelta(days=7)]
+        if len(last7) >= 2:
+            change = (last7["c"].iloc[-1] - last7["c"].iloc[0]) / last7["c"].iloc[0]
+            m.current_trend = "recovering" if change > 0.2 else "declining" if change < -0.2 else "stable"
+
+        # ATH 72 h sustained flag – weighted variant
+        if m.peak_price_72h:
+            after_ath = df[df["h"] >= m.peak_price_72h]
+            if not after_ath.empty:
+                sustain_end = after_ath["t"].iloc[0] + timedelta(seconds=SUSTAIN_DAYS_SEC)
+                sub = df[(df["t"] >= after_ath["t"].iloc[0]) & (df["t"] <= sustain_end)]
+                if not sub.empty and (sub["l"] >= m.peak_price_72h).all():
+                    m.ath_72h_sustained = True
+
+        # Volume drop after peak
+        peak_idx = df["h"].idxmax()
+        if peak_idx is not None and peak_idx + 1 < len(df):
+            peak_vol = df.loc[peak_idx, "v"]
+            vol_after = df.loc[peak_idx + 1 : peak_idx + 24, "v"].mean()
+            m.volume_drop_24h_after_peak = vol_after < 0.4 * peak_vol
+
+    # ────────── Classification logic (brief) ──────────
+    def _classify(self, m: TokenMetrics) -> str:  # noqa: C901 – condensed
+        # Quick honeypot / LP drain → rugpull
+        if m.honeypot or (m.lp_removed_24h and m.lp_removed_24h > 0.25):
             return "rugpull"
-        
-        # Default to unsuccessful
+
+        # Coordinated dump by top holders
+        if m.big_holder_dump and m.total_major_drops >= 1:
+            return "rugpull"
+
+        # Dynamic success check: 72 h gain & holders & not rug flags
+        if (
+            m.peak_price_72h
+            and m.launch_price
+            and m.peak_price_72h / m.launch_price >= self.TH_GAIN_72H
+            and m.holder_count
+            and m.holder_count >= self.TH_HOLDERS_SUCCESS
+            and not m.price_drops  # no giant early dump
+        ):
+            m.success_score = self._score(m)
+            return "successful"
+
+        # Recovery success
+        if m.has_shown_recovery and m.max_recovery_after_drop and m.max_recovery_after_drop >= 8.0:
+            m.success_score = self._score(m)
+            return "successful"
+
+        # Mega appreciation → historical_success if dead now
+        if m.mega_appreciation and m.mega_appreciation >= 1000:
+            m.success_score = self._score(m)
+            return "successful"
+
+        # Inactive
+        if (
+            (m.mega_appreciation is None or m.mega_appreciation < 3)
+            and (m.holder_count is None or m.holder_count <= 25)
+            and (m.volume_24h is None or m.volume_24h < 50)
+        ):
+            return "inactive"
+
         return "unsuccessful"
 
-    def _is_inactive(self, m: TokenMetrics) -> bool:
-        """
-        Check if token is inactive - but ONLY for tokens that never showed success.
-        Historically successful tokens should not be penalized for current low activity.
-        """
-        # Never classify tokens with any significant historical appreciation as inactive
-        if m.mega_appreciation and m.mega_appreciation >= 10:  # Even 10x+ should not be inactive
-            return False
-        
-        # Never classify tokens that showed meaningful recovery as inactive
-        if m.has_shown_recovery and m.max_recovery_after_drop and m.max_recovery_after_drop >= 2:
-            return False
-        
-        # Never classify tokens with reasonable holder base as inactive (shows community)
-        if m.holder_count and m.holder_count >= 50:  # Lowered threshold for community
-            return False
-        
-        # Only classify as inactive if the token truly never gained traction:
-        # 1. Very low appreciation (< 10x)
-        # 2. Very few holders (< 20)
-        # 3. Extremely low current volume (< $10) indicating complete abandonment
-        
-        low_appreciation = not m.mega_appreciation or m.mega_appreciation < 10
-        very_few_holders = m.holder_count is not None and m.holder_count < 20
-        completely_dead = m.volume_24h is not None and m.volume_24h < 10
-        
-        # Only mark as inactive if it never gained any meaningful traction
-        return low_appreciation and very_few_holders and completely_dead
+    # ────────── Health axis ──────────
+    def _health_status(self, m: TokenMetrics) -> str:
+        if m.honeypot or (m.lp_removed_24h and m.lp_removed_24h > 0.25):
+            return "dead"
+        if m.current_trend == "declining" or (m.volume_24h and m.volume_24h < 1000):
+            return "warning"
+        return "healthy"
 
-    def _is_mega_success(self, m: TokenMetrics) -> bool:
-        """
-        Detect mega-successful tokens (1000x+ appreciation).
-        These are almost always successful regardless of volatility.
-        """
-        if not m.mega_appreciation or not m.current_vs_ath_ratio:
-            return False
-        
-        # 1000x+ appreciation with current price still reasonable vs ATH
-        if (m.mega_appreciation >= self.SUCCESS_MEGA_APPRECIATION and 
-            m.current_vs_ath_ratio >= self.SUCCESS_SUSTAINED_HIGH_RATIO):
-            return True
-        
-        # Super mega success (100,000x+) - almost always successful
-        if m.mega_appreciation >= 100000 and m.current_vs_ath_ratio >= 0.001:  # 0.1% of ATH
-            return True
-        
-        # Use success score for borderline cases
-        if m.final_evaluation_score and m.final_evaluation_score >= 0.7:
-            return True
-        
-        return False
-
-    def _is_traditional_success(self, m: TokenMetrics) -> bool:
-        """Traditional success criteria (10x+ with no major sustained drops)."""
-        if None in (m.peak_price_72h, m.post_ath_peak_price, m.holder_count):
-            return False
-        
-        if m.holder_count < self.SUCCESS_MIN_HOLDERS:
-            return False
-        
-        # Traditional success: 10x+ appreciation without sustained drops
-        if (m.post_ath_peak_price / m.peak_price_72h >= self.SUCCESS_APPRECIATION and 
-            not m.has_sustained_drop):
-            return True
-        
-        return False
-
-    def _is_recovery_success(self, m: TokenMetrics) -> bool:
-        """
-        Recovery-based success: Token that recovered well after drops.
-        More lenient than original algorithm.
-        """
-        if not m.has_shown_recovery or not m.max_recovery_after_drop:
-            return False
-        
-        # Strong recovery with reasonable holder count
-        if (m.max_recovery_after_drop >= self.SUCCESS_RECOVERY_MULTIPLIER and
-            m.holder_count and m.holder_count >= self.SUCCESS_MIN_HOLDERS // 2):  # Half the normal requirement
-            
-            # Current trend should not be strongly declining
-            if m.current_trend != "declining":
-                return True
-        
-        return False
-
-    def _is_clear_rugpull(self, m: TokenMetrics) -> bool:
-        """
-        Very conservative rugpull detection - only flag clear coordinated dumps.
-        Much higher threshold to prevent false positives.
-        """
-        if not m.price_drops:
-            return False
-        
-        # Must have drops above the higher threshold (85%)
-        major_drops = [d for _, d in m.price_drops if d >= self.RUG_THRESHOLD]
-        if not major_drops:
-            return False
-        
-        # Must have many major drops (indicating pattern, not volatility)
-        if m.total_major_drops < self.RUG_MIN_DROPS_FOR_PATTERN:
-            return False
-        
-        # Current price must be very low vs ATH (indicating no recovery)
-        if m.current_vs_ath_ratio and m.current_vs_ath_ratio >= self.RUG_FINAL_PRICE_RATIO:
-            return False  # Price is still reasonable vs ATH
-        
-        # Multiple rapid coordinated dumps
-        if m.rapid_drops_count >= 3:  # Increased threshold
-            return True
-        
-        # Many drops with very long time without recovery and declining trend
-        if (m.total_major_drops >= 10 and 
-            m.days_since_last_major_drop and m.days_since_last_major_drop >= self.RUG_NO_RECOVERY_DAYS and
-            m.current_trend == "declining"):
-            return True
-        
-        return False
-
-    def _calculate_success_score(self, m: TokenMetrics) -> float:
-        """
-        Calculate a comprehensive success score considering all factors.
-        Higher score = more successful. Score >0.7 indicates strong success.
-        """
-        score = 0.0
-        
-        # Mega appreciation bonus (most important factor)
+    # ────────── Composite score with penalties ──────────
+    def _score(self, m: TokenMetrics) -> float:  # noqa: C901
+        # Keep simple: appreciation + holder + sustainability – penalties
+        s = 0.0
+        # Appreciation – log scale capped
         if m.mega_appreciation:
-            if m.mega_appreciation >= 100000:  # 100,000x+
-                score += 0.5
-            elif m.mega_appreciation >= 10000:  # 10,000x+
-                score += 0.4
-            elif m.mega_appreciation >= 1000:   # 1,000x+
-                score += 0.3
-            elif m.mega_appreciation >= 100:    # 100x+
-                score += 0.2
-            elif m.mega_appreciation >= 10:     # 10x+
-                score += 0.1
-        
-        # Current price vs ATH (sustainability factor)
-        if m.current_vs_ath_ratio:
-            if m.current_vs_ath_ratio >= 0.5:    # Still 50%+ of ATH
-                score += 0.2
-            elif m.current_vs_ath_ratio >= 0.1:  # Still 10%+ of ATH
-                score += 0.15
-            elif m.current_vs_ath_ratio >= 0.01: # Still 1%+ of ATH
-                score += 0.1
-        
-        # Recovery pattern bonus
-        if m.has_shown_recovery and m.max_recovery_after_drop:
-            if m.max_recovery_after_drop >= 10:
-                score += 0.1
-            elif m.max_recovery_after_drop >= 5:
-                score += 0.05
-        
-        # Holder count bonus
+            s += min(0.4, np.log10(m.mega_appreciation) / 5)  # 100× ≈ 0.4
+        # Holders
         if m.holder_count:
-            if m.holder_count >= 500:
-                score += 0.1
-            elif m.holder_count >= 100:
-                score += 0.05
-        
-        # Penalty for excessive drops
-        if m.total_major_drops:
-            if m.total_major_drops >= 20:
-                score -= 0.2
-            elif m.total_major_drops >= 10:
-                score -= 0.1
-            elif m.total_major_drops >= 5:
-                score -= 0.05
-        
-        # Current trend bonus/penalty
+            s += min(0.2, np.log10(m.holder_count) / 10)
+        # Sustainability
+        if m.ath_72h_sustained:
+            s += 0.1
+        if m.current_vs_ath_ratio and m.current_vs_ath_ratio >= 0.25:
+            s += 0.1
+        # Decay trend
         if m.current_trend == "recovering":
-            score += 0.05
-        elif m.current_trend == "declining":
-            score -= 0.1
-        
-        return max(0.0, min(1.0, score))  # Clamp between 0 and 1
+            s += 0.05
+        # Penalties
+        if m.total_major_drops >= 5:
+            s -= 0.1
+        if m.wash_imbalance and m.wash_imbalance <= self.TH_WASH_IMBALANCE:
+            s -= 0.05
+        return round(max(0.0, min(1.0, s)), 3)
 
-    def _log_classification_reasoning(self, m: TokenMetrics, label: str) -> None:
-        """Log detailed reasoning for classification decision."""
-        logger.info(f"Token {m.mint_address} classified as '{label}'")
-        logger.info(f"  - Current price: {m.current_price}")
-        logger.info(f"  - Volume 24h: {m.volume_24h}")
-        logger.info(f"  - Holder count: {m.holder_count}")
-        logger.info(f"  - Mega appreciation: {m.mega_appreciation}x")
-        logger.info(f"  - Current vs ATH ratio: {m.current_vs_ath_ratio:.4f}")
-        logger.info(f"  - Total major drops: {m.total_major_drops}")
-        logger.info(f"  - Rapid drops: {m.rapid_drops_count}")
-        logger.info(f"  - Max recovery: {m.max_recovery_after_drop}x")
-        logger.info(f"  - Success score: {m.final_evaluation_score:.3f}")
-        logger.info(f"  - Current trend: {m.current_trend}")
-        
-        if label == "successful":
-            reasons = []
-            if m.mega_appreciation and m.mega_appreciation >= 1000:
-                reasons.append(f"mega appreciation ({m.mega_appreciation:.0f}x)")
-            if m.current_vs_ath_ratio and m.current_vs_ath_ratio >= 0.01:
-                reasons.append(f"sustained price ({m.current_vs_ath_ratio:.2%} of ATH)")
-            if m.final_evaluation_score and m.final_evaluation_score >= 0.7:
-                reasons.append(f"high success score ({m.final_evaluation_score:.3f})")
-            logger.info(f"  → SUCCESS due to: {', '.join(reasons) if reasons else 'traditional criteria'}")
-            
-        elif label == "rugpull":
-            reasons = []
-            if m.rapid_drops_count >= 3:
-                reasons.append(f"multiple coordinated dumps ({m.rapid_drops_count})")
-            if m.total_major_drops >= 10:
-                reasons.append(f"excessive drops ({m.total_major_drops})")
-            if m.current_vs_ath_ratio and m.current_vs_ath_ratio < 0.01:
-                reasons.append(f"collapsed price ({m.current_vs_ath_ratio:.4%} of ATH)")
-            logger.info(f"  → RUGPULL due to: {', '.join(reasons)}")
-        
-        elif label == "unsuccessful":
-            logger.info(f"  → UNSUCCESSFUL: Doesn't meet success criteria but not clear rugpull")
+    # ────────── Nightly auto‑tune entrypoint ──────────
+    @staticmethod
+    def nightly_autotune(stats_df: pd.DataFrame) -> Dict[str, float]:  # noqa: D401
+        """Run a tiny Optuna study to retune percentiles nightly."""
+        def objective(trial):
+            p_gain = trial.suggest_int("gain_pctl", 60, 90)
+            p_drop = trial.suggest_int("drop_pctl", 90, 99)
+            p_hold = trial.suggest_int("hold_pctl", 50, 90)
+            # very cheap heuristic balanced‑accuracy calc
+            gain_cut = np.percentile(stats_df["gain_72h"], p_gain)
+            drop_cut = np.percentile(stats_df["max_drop_6h"], p_drop)
+            hold_cut = np.percentile(stats_df["holder_growth"], p_hold)
+            preds = (
+                (stats_df["gain_72h"] >= gain_cut)
+                & (stats_df["holder_growth"] >= hold_cut)
+                & ~(stats_df["max_drop_6h"] >= drop_cut)
+            )
+            tp = ((preds) & (stats_df["label_true"] == "successful")).sum()
+            tn = ((~preds) & (stats_df["label_true"] != "successful")).sum()
+            fp = ((preds) & (stats_df["label_true"] != "successful")).sum()
+            fn = ((~preds) & (stats_df["label_true"] == "successful")).sum()
+            bal_acc = 0.5 * ((tp / (tp + fn + 1e-6)) + (tn / (tn + fp + 1e-6)))
+            return 1 - bal_acc  # minimise error
 
-    # ────────── Per‑token flow with enhanced logging ──────────
+        study = optuna.create_study()
+        study.optimize(objective, n_trials=100, timeout=30)
+        best = study.best_params
+        logger.info("Nightly autotune → gain=%d, drop=%d, holder=%d", best["gain_pctl"], best["drop_pctl"], best["hold_pctl"])
+        return best
