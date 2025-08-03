@@ -223,6 +223,33 @@ class OnChainDataProvider:
                     logger.debug(f"Failed to store holder snapshot for {mint}: {e}")
         return holder_count
 
+    async def get_transaction_count(self, mint: str) -> Optional[int]:
+        """Get transaction count for a token using getSignaturesForAddress API."""
+        cache_key = f"tx_count_{mint}"
+        if cache_key in self._holder_cache:  # Reuse holder cache for tx counts
+            count, cached_at = self._holder_cache[cache_key]
+            if time.time() - cached_at < self.config.cache.holder_cache_ttl:
+                return count
+        
+        logger.info(f"Getting transaction count for: {mint}")
+        try:
+            # Get all signatures for this mint address
+            signatures = await self._get_signatures_for_address(mint, get_all=True)
+            if signatures is None:
+                logger.warning(f"Could not get signatures for {mint}")
+                return None
+            
+            transaction_count = len(signatures)
+            logger.info(f"Found {transaction_count} transactions for {mint}")
+            
+            # Cache the result
+            self._holder_cache[cache_key] = (transaction_count, time.time())
+            return transaction_count
+            
+        except Exception as e:
+            logger.error(f"Error getting transaction count for {mint}: {e}")
+            return None
+
     async def _get_holders_via_program_accounts(self, mint: str) -> Optional[int]:
         logger.info(f"Attempting to get holder count for: {mint} via getProgramAccounts")
         try:

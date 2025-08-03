@@ -73,6 +73,7 @@ class TokenMetrics:
     has_sustained_drop: bool = False
     price_drops: List[Tuple[datetime, float]] = None
     holder_count: Optional[int] = None
+    transaction_count: Optional[int] = None  # Total number of transactions
     
     # Enhanced metrics for better classification
     early_phase_drops: List[Tuple[datetime, float, float]] = None  # (time, drop_pct, recovery_ratio)
@@ -141,12 +142,18 @@ class EnhancedTokenLabeler:
     RUG_MIN_DROPS_FOR_PATTERN = 3  # Multiple coordinated dumps
     RUG_NO_RECOVERY_DAYS = 30  # No meaningful recovery for 30+ days
     
+    # Hard rule for liquidity removal with significant impact
+    RUG_LIQUIDITY_HARD_VOLUME_DROP = 0.80  # 80%+ volume drop after peak (hard rule)
+    RUG_LIQUIDITY_HARD_PRICE_COLLAPSE = 0.90  # 90%+ price drop from ATH (hard rule)
+    RUG_LIQUIDITY_HARD_MIN_APPRECIATION = 5.0  # Minimum 5x appreciation to qualify
+    
     # === INACTIVE CRITERIA ===  
     INACTIVE_MAX_APPRECIATION = 3.0  # Never gained more than 3x
     INACTIVE_MAX_HOLDERS = 25  # Very few holders
     INACTIVE_MAX_VOLUME = 50  # <$50 daily volume
     INACTIVE_MAX_PEAK_RATIO = 1.5  # Peak never exceeded 1.5x launch price
     INACTIVE_MAX_DAYS_ACTIVE = 7  # No activity after first week
+    INACTIVE_MAX_TRANSACTIONS = 380  # Hard rule: <380 transactions = always inactive
     
     # === ANALYSIS PARAMETERS ===
     EARLY_PHASE_DAYS = 14  # First 2 weeks are "early phase"
@@ -453,11 +460,31 @@ class EnhancedTokenLabeler:
             if t.final_evaluation_score is None:
                 logger.warning(f"Success score calculation returned None for {mint}, setting to 0.0")
                 t.final_evaluation_score = 0.0
-        else:
-            logger.debug(f"{mint}: No historical data available")
+            
+            # Get transaction count from historical data if available
+            # Note: Using OHLCV length is not accurate for transaction count
+            # OHLCV represents time periods, not individual transactions
+            # We'll disable this estimation as it's misleading
+            # if hasattr(hist_data, 'ohlcv') and hist_data.ohlcv:
+            #     t.transaction_count = len(hist_data.ohlcv)
+            #     logger.debug(f"{mint}: Estimated transaction count from OHLCV data: {t.transaction_count}")
+            t.transaction_count = None  # Disable inaccurate estimation
 
         # 3. Holder count
         t.holder_count = await self.data_provider.get_holder_count(mint)
+        
+        # Try to get transaction count from data provider if not already set
+        if t.transaction_count is None:
+            try:
+                t.transaction_count = await self.data_provider.get_transaction_count(mint)
+                if t.transaction_count is not None:
+                    logger.debug(f"{mint}: Transaction count from data provider: {t.transaction_count}")
+                else:
+                    logger.debug(f"{mint}: No transaction count returned from data provider")
+            except (AttributeError, NotImplementedError):
+                logger.debug(f"{mint}: Transaction count method not available from data provider")
+            except Exception as e:
+                logger.warning(f"{mint}: Error getting transaction count from data provider: {e}")
         
         return t
 
@@ -679,29 +706,36 @@ class EnhancedTokenLabeler:
         Revised classification algorithm for ML training data.
         
         Order of precedence:
-        1. HARD RULE: ATH within 72h = never successful (hype-only tokens)
-        2. Clear rugpull patterns (rapid liquidity removal)
-        3. True inactivity (minimal transactions/holders)
-        4. Sustained growth success (ATH after 72h + stability)
-        5. Historical success (consistent with sustained patterns)
-        6. Everything else = unsuccessful
+        1. HARD RULE: Liquidity removal = always rugpull (HIGHEST PRIORITY)
+        2. HARD RULE: ATH within 72h = never successful (hype-only tokens)
+        3. Clear rugpull patterns (rapid liquidity removal)
+        4. HARD RULE: <380 transactions = always inactive
+        5. True inactivity (minimal transactions/holders)
+        6. Sustained growth success (ATH after 72h + stability)
+        7. Historical success (consistent with sustained patterns)
+        8. Everything else = unsuccessful
         """
         
-        # HARD RULE: If ATH was reached within first 72h, token can NEVER be successful
+        # HARD RULE #1: Liquidity removal = ALWAYS rugpull (highest priority)
+        # This overrides ALL other classifications including success patterns
+        if self._is_hard_liquidity_removal_rugpull(m):
+            logger.debug(f"HARD RULE: Liquidity removal detected - immediately classified as rugpull")
+            return "rugpull"
+        
+        # HARD RULE #2: If ATH was reached within first 72h, token can NEVER be successful
         # This eliminates hype-only tokens that never grew beyond initial pump
         if self._ath_was_within_72h(m):
             logger.debug(f"ATH within 72h - disqualified from success classification")
-            # Still check for rugpull vs inactive vs unsuccessful
-            if self._is_coordinated_rugpull(m):
+            # Still check for other rugpull patterns vs inactive vs unsuccessful
+            if self._is_coordinated_rugpull_non_liquidity(m):
                 return "rugpull"
             elif self._is_truly_inactive(m):
                 return "inactive"
             else:
                 return "unsuccessful"
         
-        # PHASE 1: Clear rugpull patterns (highest priority)
-        # Rapid liquidity removal and price collapse
-        if self._is_coordinated_rugpull(m):
+        # PHASE 1: Other rugpull patterns (excluding liquidity removal which was checked first)
+        if self._is_coordinated_rugpull_non_liquidity(m):
             return "rugpull"
         
         # PHASE 2: True inactivity check 
@@ -771,6 +805,10 @@ class EnhancedTokenLabeler:
         Key indicators: 60%+ volume drop + price collapse + no recovery to previous highs.
         """
         
+        # HARD RULE: Liquidity removal with significant impact = always rugpull
+        if self._is_hard_liquidity_removal_rugpull(m):
+            return True
+        
         # Pattern 1: Rapid liquidity removal with price collapse
         if self._is_liquidity_removal_rugpull(m):
             return True
@@ -780,6 +818,64 @@ class EnhancedTokenLabeler:
             return True
         
         return False
+
+    def _is_coordinated_rugpull_non_liquidity(self, m: TokenMetrics) -> bool:
+        """
+        Detects rugpulls based on patterns OTHER than the hard liquidity removal rule.
+        Used when liquidity removal has already been checked at the highest priority.
+        """
+        
+        # Pattern 1: Rapid liquidity removal with price collapse (softer criteria)
+        if self._is_liquidity_removal_rugpull(m):
+            return True
+        
+        # Pattern 2: Multiple coordinated dumps with no meaningful recovery
+        if self._is_coordinated_dump_pattern(m):
+            return True
+        
+        # Pattern 3: Mega rugpull pattern (high appreciation followed by collapse)
+        if self._is_mega_rugpull_pattern(m):
+            return True
+        
+        return False
+
+    def _is_hard_liquidity_removal_rugpull(self, m: TokenMetrics) -> bool:
+        """
+        HARD RULE: Detect severe liquidity removal that has significant impact.
+        This represents coordinated liquidity extraction that destroys the token.
+        
+        Criteria:
+        - 80%+ volume drop after peak (massive liquidity removal)
+        - 90%+ price collapse from ATH (significant impact)
+        - Had at least 5x appreciation (to distinguish from inactive tokens)
+        """
+        # Must have had significant volume drop after peak (liquidity removal indicator)
+        if not m.volume_drop_24h_after_peak:
+            return False
+        
+        # Must have had minimum appreciation to qualify as rugpull (not just inactive)
+        if not m.mega_appreciation or m.mega_appreciation < self.RUG_LIQUIDITY_HARD_MIN_APPRECIATION:
+            logger.debug(f"Not hard liquidity rugpull: insufficient appreciation ({m.mega_appreciation or 0:.1f}x < {self.RUG_LIQUIDITY_HARD_MIN_APPRECIATION}x)")
+            return False
+        
+        # Must have massive price collapse (90%+ from ATH)
+        if not m.current_vs_ath_ratio or m.current_vs_ath_ratio > (1 - self.RUG_LIQUIDITY_HARD_PRICE_COLLAPSE):
+            collapse_pct = (1 - m.current_vs_ath_ratio) * 100 if m.current_vs_ath_ratio else 0
+            logger.debug(f"Not hard liquidity rugpull: insufficient price collapse ({collapse_pct:.1f}% < {self.RUG_LIQUIDITY_HARD_PRICE_COLLAPSE * 100}%)")
+            return False
+        
+        # Additional confirmation: Current volume must be very low (liquidity dried up)
+        volume_dried_up = (m.volume_24h is None or m.volume_24h < 1000)  # Less than $1000 daily volume
+        
+        # Calculate collapse percentage for logging
+        price_collapse_pct = (1 - m.current_vs_ath_ratio) * 100 if m.current_vs_ath_ratio else 0
+        
+        if volume_dried_up:
+            logger.info(f"Hard liquidity removal rugpull: {m.mega_appreciation:.1f}x → {price_collapse_pct:.1f}% collapse, volume dried up (${m.volume_24h or 0:.0f})")
+            return True
+        else:
+            logger.debug(f"Not hard liquidity rugpull: volume still active (${m.volume_24h:.0f} > $1000)")
+            return False
 
     def _is_liquidity_removal_rugpull(self, m: TokenMetrics) -> bool:
         """
@@ -953,6 +1049,24 @@ class EnhancedTokenLabeler:
         These tokens never gained any meaningful traction or community.
         """
         
+        # HARD RULE: Less than 380 transactions = always inactive
+        # Note: Only apply if we have reliable transaction count data
+        if m.transaction_count is not None and m.transaction_count < self.INACTIVE_MAX_TRANSACTIONS:
+            # Sanity check: transaction count should typically be higher than holder count
+            if m.holder_count is not None and m.transaction_count < m.holder_count:
+                logger.warning(f"Transaction count ({m.transaction_count}) is lower than holder count ({m.holder_count}) - this seems incorrect")
+                logger.warning(f"Skipping transaction-based inactive rule due to suspicious data")
+            else:
+                logger.info(f"Truly inactive (hard rule): {m.transaction_count} transactions (< {self.INACTIVE_MAX_TRANSACTIONS} threshold)")
+                return True
+        elif m.transaction_count is None:
+            logger.debug(f"Transaction count not available - skipping transaction-based inactive rule")
+        else:
+            # Additional sanity check for valid transaction counts
+            if m.holder_count is not None and m.transaction_count < m.holder_count:
+                logger.warning(f"Transaction count ({m.transaction_count}) is lower than holder count ({m.holder_count}) - this seems incorrect")
+            logger.debug(f"Transaction count check passed: {m.transaction_count} >= {self.INACTIVE_MAX_TRANSACTIONS}")
+        
         # Must have very few holders (key indicator of no community)
         if m.holder_count is None:
             # If no holder data AND no significant price movement, likely inactive
@@ -1019,7 +1133,7 @@ class EnhancedTokenLabeler:
                 logger.debug(f"Not inactive: had {total_movement:.1f}x price movement")
                 return False
         
-        logger.info(f"Truly inactive: {m.holder_count} holders, ${m.volume_24h or 0:.0f} volume, {m.mega_appreciation or 0:.1f}x appreciation")
+        logger.info(f"Truly inactive: {m.holder_count} holders, {m.transaction_count or 'unknown'} transactions, ${m.volume_24h or 0:.0f} volume, {m.mega_appreciation or 0:.1f}x appreciation")
         return True
 
     def _is_sustained_growth_success(self, m: TokenMetrics) -> bool:
@@ -1675,7 +1789,8 @@ class EnhancedTokenLabeler:
         logger.info(f"  ├─ 72h peak: ${m.peak_price_72h:.8f}" if m.peak_price_72h else "  ├─ 72h peak: None")
         logger.info(f"  ├─ All-time high: ${m.post_ath_peak_price:.8f}" if m.post_ath_peak_price else "  ├─ All-time high: None")
         logger.info(f"  ├─ Volume 24h: ${m.volume_24h:,.0f}" if m.volume_24h else "  ├─ Volume 24h: None")
-        logger.info(f"  └─ Holder count: {m.holder_count:,}" if m.holder_count else "  └─ Holder count: None")
+        logger.info(f"  ├─ Holder count: {m.holder_count:,}" if m.holder_count else "  ├─ Holder count: None")
+        logger.info(f"  └─ Transaction count: {m.transaction_count:,}" if m.transaction_count else "  └─ Transaction count: None")
         
         # Performance metrics
         logger.info(f"🚀 Performance Metrics:")
@@ -1750,6 +1865,14 @@ class EnhancedTokenLabeler:
         elif label == "rugpull":
             reasons = []
             
+            if self._is_hard_liquidity_removal_rugpull(m):
+                reasons.append("🚨 HARD LIQUIDITY REMOVAL RUGPULL (Hard Rule)")
+                price_collapse_pct = (1 - m.current_vs_ath_ratio) * 100 if m.current_vs_ath_ratio else 0
+                reasons.append(f"   ├─ Massive liquidity removal: 80%+ volume drop")
+                reasons.append(f"   ├─ Severe price impact: {price_collapse_pct:.1f}% collapse from ATH")
+                reasons.append(f"   ├─ Had {m.mega_appreciation:.1f}x appreciation before collapse")
+                reasons.append(f"   └─ Current volume dried up: ${m.volume_24h or 0:.0f}")
+            
             if self._is_mega_rugpull_pattern(m):
                 reasons.append("💀 MEGA RUGPULL PATTERN")
                 reasons.append(f"   ├─ {m.mega_appreciation:.0f}x appreciation → {m.current_vs_ath_ratio:.4%} collapse")
@@ -1804,11 +1927,11 @@ class EnhancedTokenLabeler:
                     missing.append("performance not sustained")
                 if not self._has_community_adoption(m):
                     missing.append("limited community adoption")
-            if m.mega_appreciation is None or m.mega_appreciation < 1000:
-                missing.append("insufficient total appreciation")
-            
-            if missing:
-                reasons.append(f"   └─ Missing: {', '.join(missing)}")
+                if m.mega_appreciation is None or m.mega_appreciation < 1000:
+                    missing.append("insufficient total appreciation")
+                
+                if missing:
+                    reasons.append(f"   └─ Missing: {', '.join(missing)}")
             
             for reason in reasons:
                 logger.info(f"  {reason}")
