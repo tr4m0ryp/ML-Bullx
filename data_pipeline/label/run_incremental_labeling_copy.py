@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """
-Enhanced Token Labeling with Incremental CSV Saving
+Enhanced Token Labeling with Incremental CSV Saving (Copy Version)
 
-This script demonstrates how to use the enhanced token labeler that saves
-results incrementally to CSV. If the process crashes or is interrupted,
-you can restart it and it will resume from where it left off.
+This script uses the enhanced token_labeler copy.py with reset functionality.
+It saves results incrementally to CSV and can resume from existing progress.
 
 Usage:
-    python run_incremental_labeling.py <input_csv> <output_csv> [batch_size]
+    python run_incremental_labeling_copy.py <input_csv> <output_csv> [--batch-size N] [--reset]
 
-Example:
-    python run_incremental_labeling.py tokens_to_label.csv labeled_tokens.csv 10
+Examples:
+    # Resume from existing progress
+    python run_incremental_labeling_copy.py input.csv output.csv --batch-size 10
+    
+    # Reset and start from beginning
+    python run_incremental_labeling_copy.py input.csv output.csv --batch-size 10 --reset
 """
 
 import asyncio
@@ -21,7 +24,11 @@ import os
 from pathlib import Path
 import pandas as pd
 
-from token_labeler import EnhancedTokenLabeler
+# Import from the copy file (need to handle the space in filename)
+sys.path.insert(0, os.path.dirname(__file__))
+import importlib
+token_labeler_copy = importlib.import_module('token_labeler copy')
+EnhancedTokenLabeler = token_labeler_copy.EnhancedTokenLabeler
 
 def setup_logging():
     """Setup logging with both file and console output."""
@@ -36,7 +43,7 @@ def setup_logging():
 
 async def main():
     """Main function to run incremental token labeling."""
-    parser = argparse.ArgumentParser(description="Run incremental token labeling")
+    parser = argparse.ArgumentParser(description="Run incremental token labeling (Copy Version)")
     parser.add_argument("input_csv", help="Input CSV file with mint addresses")
     parser.add_argument("output_csv", help="Output CSV file for labeled tokens")
     parser.add_argument("--batch-size", type=int, default=10, help="Batch size for processing (default: 10)")
@@ -53,14 +60,17 @@ async def main():
     setup_logging()
     logger = logging.getLogger(__name__)
     
-    logger.info(f"Starting incremental token labeling")
-    logger.info(f"Input: {args.input_csv}")
-    logger.info(f"Output: {args.output_csv}")
-    logger.info(f"Batch size: {args.batch_size}")
+    logger.info("=" * 80)
+    logger.info("🚀 ENHANCED TOKEN LABELING - COPY VERSION")
+    logger.info("=" * 80)
+    logger.info(f"📁 Input: {args.input_csv}")
+    logger.info(f"📁 Output: {args.output_csv}")
+    logger.info(f"📦 Batch size: {args.batch_size}")
     if args.reset:
         logger.info("🔄 RESET MODE: Will start from the beginning, ignoring existing progress")
     else:
         logger.info("📝 RESUME MODE: Will continue from existing progress if available")
+    logger.info("=" * 80)
     
     try:
         # Initialize the enhanced token labeler
@@ -68,10 +78,10 @@ async def main():
             # Get initial stats (before reset if applicable)
             if not args.reset:
                 stats = labeler.get_processing_stats(args.input_csv, args.output_csv)
-                logger.info(f"Initial processing stats: {stats}")
+                logger.info(f"📊 Initial processing stats: {stats}")
                 
                 if stats["remaining"] == 0:
-                    logger.info("All tokens have already been processed!")
+                    logger.info("✅ All tokens have already been processed!")
                     return
             
             # Run the labeling process with incremental saving
@@ -93,24 +103,27 @@ async def main():
             
             # Final summary
             final_stats = labeler.get_processing_stats(args.input_csv, args.output_csv)
-            logger.info(f"Processing completed!")
-            logger.info(f"Final stats: {final_stats}")
-            logger.info(f"Results saved to: {args.output_csv}")
+            logger.info("=" * 80)
+            logger.info("🎉 PROCESSING COMPLETED!")
+            logger.info("=" * 80)
+            logger.info(f"📊 Final stats: {final_stats}")
+            logger.info(f"💾 Results saved to: {args.output_csv}")
             
             # Show distribution of labels
             if not result_df.empty:
+                logger.info("📈 Label distribution:")
                 label_counts = result_df["label"].value_counts()
-                logger.info("Label distribution:")
                 for label, count in label_counts.items():
                     percentage = (count / len(result_df)) * 100
-                    logger.info(f"  {label}: {count} ({percentage:.1f}%)")
+                    logger.info(f"   {label}: {count} ({percentage:.1f}%)")
+            logger.info("=" * 80)
     
     except KeyboardInterrupt:
-        logger.info("Process interrupted by user. Progress has been saved.")
-        logger.info(f"To resume, run the same command again: {' '.join(sys.argv)}")
+        logger.info("⚠️ Process interrupted by user. Progress has been saved.")
+        logger.info(f"🔄 To resume, run the same command again: {' '.join(sys.argv)}")
     except Exception as e:
-        logger.error(f"Error during processing: {e}")
-        logger.info("Check the log file for detailed error information.")
+        logger.error(f"❌ Error during processing: {e}")
+        logger.info("📝 Check the log file for detailed error information.")
         sys.exit(1)
 
 if __name__ == "__main__":

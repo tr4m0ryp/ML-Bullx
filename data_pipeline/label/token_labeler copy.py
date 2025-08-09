@@ -169,7 +169,7 @@ class EnhancedTokenLabeler:
             await self.data_provider.__aexit__(*exc)
 
     # ────────── CSV driver ──────────
-    async def label_tokens_from_csv(self, inp: str, out: str, batch: int = 20) -> pd.DataFrame:
+    async def label_tokens_from_csv(self, inp: str, out: str, batch: int = 20, reset_progress: bool = False) -> pd.DataFrame:
         """Label tokens from CSV using on-chain data with incremental saving."""
         df = pd.read_csv(inp)
         if "mint_address" not in df.columns:
@@ -180,31 +180,44 @@ class EnhancedTokenLabeler:
         initial_stats = self.get_processing_stats(inp, out)
         logger.info(f"Processing overview: {initial_stats}")
 
-        # Create backup of existing output file
-        if os.path.exists(out):
-            backup_path = self._create_backup(out)
-            if backup_path:
-                logger.info(f"Backup created before processing: {backup_path}")
+        # Handle reset option
+        if reset_progress:
+            logger.info("🔄 RESET MODE: Starting fresh, ignoring existing progress")
+            if os.path.exists(out):
+                backup_path = self._create_backup(out)
+                if backup_path:
+                    logger.info(f"Backup created before reset: {backup_path}")
+            # Force overwrite the output file
+            self._init_output_csv(out, overwrite=True)
+            processed_mints = set()
+            remaining_mints = mints
+            logger.info(f"Processing all {len(remaining_mints)} tokens from the beginning")
+        else:
+            # Create backup of existing output file
+            if os.path.exists(out):
+                backup_path = self._create_backup(out)
+                if backup_path:
+                    logger.info(f"Backup created before processing: {backup_path}")
 
-        # Validate existing output file
-        processed_mints = set()
-        if os.path.exists(out):
-            if self._validate_csv_integrity(out):
-                try:
-                    existing_df = pd.read_csv(out)
-                    if "mint_address" in existing_df.columns:
-                        processed_mints = set(existing_df["mint_address"].tolist())
-                        logger.info(f"Resuming from existing output: {len(processed_mints)} tokens already processed")
-                except Exception as e:
-                    logger.warning(f"Could not read existing output file: {e}")
-            else:
-                logger.warning("Existing output file failed validation, starting fresh")
-                self._init_output_csv(out, overwrite=True)
-                processed_mints = set()
+            # Validate existing output file
+            processed_mints = set()
+            if os.path.exists(out):
+                if self._validate_csv_integrity(out):
+                    try:
+                        existing_df = pd.read_csv(out)
+                        if "mint_address" in existing_df.columns:
+                            processed_mints = set(existing_df["mint_address"].tolist())
+                            logger.info(f"Resuming from existing output: {len(processed_mints)} tokens already processed")
+                    except Exception as e:
+                        logger.warning(f"Could not read existing output file: {e}")
+                else:
+                    logger.warning("Existing output file failed validation, starting fresh")
+                    self._init_output_csv(out, overwrite=True)
+                    processed_mints = set()
 
-        # Filter out already processed mints
-        remaining_mints = [m for m in mints if m not in processed_mints]
-        logger.info(f"Processing {len(remaining_mints)} remaining tokens (skipping {len(processed_mints)} already done)")
+            # Filter out already processed mints
+            remaining_mints = [m for m in mints if m not in processed_mints]
+            logger.info(f"Processing {len(remaining_mints)} remaining tokens (skipping {len(processed_mints)} already done)")
 
         # Initialize CSV file with headers if it doesn't exist
         self._init_output_csv(out)
@@ -212,38 +225,68 @@ class EnhancedTokenLabeler:
         results: List[Tuple[str, str]] = []
         total_processed = len(processed_mints)
         failed_count = 0
+        batch_results = []  # Store results for current batch
         
         try:
             for i in range(0, len(remaining_mints), batch):
                 chunk = remaining_mints[i:i + batch]
-                logger.info("Batch %d/%d (size=%d), total processed: %d/%d, failed: %d", 
-                           i // batch + 1, (len(remaining_mints) + batch - 1) // batch, 
-                           len(chunk), total_processed, len(mints), failed_count)
+                batch_number = i // batch + 1
+                total_batches = (len(remaining_mints) + batch - 1) // batch
+                
+                logger.info("=" * 60)
+                logger.info(f"🚀 STARTING BATCH {batch_number}/{total_batches}")
+                logger.info(f"   Batch size: {len(chunk)} tokens")
+                logger.info(f"   Total processed so far: {total_processed}/{len(mints)}")
+                logger.info(f"   Failed tokens so far: {failed_count}")
+                logger.info("=" * 60)
+                
+                batch_results = []  # Reset batch results
+                batch_start_time = time.time()
                 
                 # Process tokens one by one for incremental saving
-                for mint in chunk:
+                for token_idx, mint in enumerate(chunk, 1):
                     try:
+                        logger.info(f"🔄 Processing token {token_idx}/{len(chunk)} in batch {batch_number}: {mint}")
                         result = await self._process(mint)
                         if result is not None:
                             results.append(result)
+                            batch_results.append(result)
                             # Write immediately to CSV
                             self._append_to_csv(out, result)
                             total_processed += 1
-                            logger.info(f"✓ {mint} → {result[1]} (progress: {total_processed}/{len(mints)})")
+                            logger.info(f"✅ {mint} → {result[1]} (progress: {total_processed}/{len(mints)})")
                         else:
-                            logger.info(f"✗ {mint} → skipped (no data)")
+                            logger.info(f"⚠️ {mint} → skipped (no data)")
                     except Exception as e:
                         failed_count += 1
-                        logger.error(f"✗ {mint} → error: {e}")
+                        logger.error(f"❌ {mint} → error: {e}")
                         # Continue processing other tokens even if one fails
                         continue
                 
-                # Validate CSV integrity periodically (every 10 batches)
-                if (i // batch + 1) % 10 == 0:
-                    if not self._validate_csv_integrity(out):
-                        logger.error("CSV integrity check failed during processing!")
+                # Batch completion summary
+                batch_duration = time.time() - batch_start_time
+                successful_in_batch = len(batch_results)
                 
+                logger.info("=" * 60)
+                logger.info(f"✅ BATCH {batch_number}/{total_batches} COMPLETED")
+                logger.info(f"   Duration: {batch_duration:.1f} seconds")
+                logger.info(f"   Successful: {successful_in_batch}/{len(chunk)} tokens")
+                logger.info(f"   Failed in batch: {len(chunk) - successful_in_batch}")
+                logger.info(f"   Cumulative progress: {total_processed}/{len(mints)} ({total_processed/len(mints)*100:.1f}%)")
+                logger.info(f"   Results saved to: {out}")
+                logger.info("=" * 60)
+                
+                # Validate CSV integrity periodically (every 5 batches instead of 10)
+                if batch_number % 5 == 0:
+                    logger.info(f"🔍 Performing integrity check after batch {batch_number}...")
+                    if not self._validate_csv_integrity(out):
+                        logger.error("❌ CSV integrity check failed during processing!")
+                    else:
+                        logger.info("✅ CSV integrity check passed")
+                
+                # Sleep between batches (except for the last one)
                 if i + batch < len(remaining_mints):
+                    logger.info(f"⏸️ Waiting 1 second before next batch...")
                     await asyncio.sleep(1)
 
         except KeyboardInterrupt:

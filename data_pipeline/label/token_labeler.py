@@ -176,7 +176,7 @@ class EnhancedTokenLabeler:
             await self.data_provider.__aexit__(*exc)
 
     # ────────── CSV driver ──────────
-    async def label_tokens_from_csv(self, inp: str, out: str, batch: int = 20) -> pd.DataFrame:
+    async def label_tokens_from_csv(self, inp: str, out: str, batch: int = 20, reset_progress: bool = False) -> pd.DataFrame:
         """Label tokens from CSV using on-chain data with incremental saving."""
         df = pd.read_csv(inp)
         if "mint_address" not in df.columns:
@@ -187,31 +187,44 @@ class EnhancedTokenLabeler:
         initial_stats = self.get_processing_stats(inp, out)
         logger.info(f"Processing overview: {initial_stats}")
 
-        # Create backup of existing output file
-        if os.path.exists(out):
-            backup_path = self._create_backup(out)
-            if backup_path:
-                logger.info(f"Backup created before processing: {backup_path}")
+        # Handle reset option
+        if reset_progress:
+            logger.info("🔄 RESET MODE: Starting fresh, ignoring existing progress")
+            if os.path.exists(out):
+                backup_path = self._create_backup(out)
+                if backup_path:
+                    logger.info(f"Backup created before reset: {backup_path}")
+            # Force overwrite the output file
+            self._init_output_csv(out, overwrite=True)
+            processed_mints = set()
+            remaining_mints = mints
+            logger.info(f"Processing all {len(remaining_mints)} tokens from the beginning")
+        else:
+            # Create backup of existing output file
+            if os.path.exists(out):
+                backup_path = self._create_backup(out)
+                if backup_path:
+                    logger.info(f"Backup created before processing: {backup_path}")
 
-        # Validate existing output file
-        processed_mints = set()
-        if os.path.exists(out):
-            if self._validate_csv_integrity(out):
-                try:
-                    existing_df = pd.read_csv(out)
-                    if "mint_address" in existing_df.columns:
-                        processed_mints = set(existing_df["mint_address"].tolist())
-                        logger.info(f"Resuming from existing output: {len(processed_mints)} tokens already processed")
-                except Exception as e:
-                    logger.warning(f"Could not read existing output file: {e}")
-            else:
-                logger.warning("Existing output file failed validation, starting fresh")
-                self._init_output_csv(out, overwrite=True)
-                processed_mints = set()
+            # Validate existing output file
+            processed_mints = set()
+            if os.path.exists(out):
+                if self._validate_csv_integrity(out):
+                    try:
+                        existing_df = pd.read_csv(out)
+                        if "mint_address" in existing_df.columns:
+                            processed_mints = set(existing_df["mint_address"].tolist())
+                            logger.info(f"Resuming from existing output: {len(processed_mints)} tokens already processed")
+                    except Exception as e:
+                        logger.warning(f"Could not read existing output file: {e}")
+                else:
+                    logger.warning("Existing output file failed validation, starting fresh")
+                    self._init_output_csv(out, overwrite=True)
+                    processed_mints = set()
 
-        # Filter out already processed mints
-        remaining_mints = [m for m in mints if m not in processed_mints]
-        logger.info(f"Processing {len(remaining_mints)} remaining tokens (skipping {len(processed_mints)} already done)")
+            # Filter out already processed mints
+            remaining_mints = [m for m in mints if m not in processed_mints]
+            logger.info(f"Processing {len(remaining_mints)} remaining tokens (skipping {len(processed_mints)} already done)")
 
         # Initialize CSV file with headers if it doesn't exist
         self._init_output_csv(out)
@@ -707,13 +720,14 @@ class EnhancedTokenLabeler:
         
         Order of precedence:
         1. HARD RULE: Liquidity removal = always rugpull (HIGHEST PRIORITY)
-        2. HARD RULE: ATH within 72h = never successful (hype-only tokens)
-        3. Clear rugpull patterns (rapid liquidity removal)
+        2. ALL rugpull patterns (with double verification for recovery)
+        3. HARD RULE: ATH within 72h = never successful (hype-only tokens)
         4. HARD RULE: <380 transactions = always inactive
         5. True inactivity (minimal transactions/holders)
         6. Sustained growth success (ATH after 72h + stability)
-        7. Historical success (consistent with sustained patterns)
-        8. Everything else = unsuccessful
+        7. Recovery-based success (survived crashes and recovered)
+        8. Historical success (consistent with sustained patterns)
+        9. Everything else = unsuccessful
         """
         
         # HARD RULE #1: Liquidity removal = ALWAYS rugpull (highest priority)
@@ -722,21 +736,28 @@ class EnhancedTokenLabeler:
             logger.debug(f"HARD RULE: Liquidity removal detected - immediately classified as rugpull")
             return "rugpull"
         
+        # PHASE 1: ALL rugpull patterns (including early rugpulls)
+        # This must come before ATH within 72h check to catch early rugpulls
+        # BUT with double verification to prevent successful tokens from being mislabeled
+        if self._is_coordinated_rugpull_non_liquidity(m):
+            # DOUBLE VERIFICATION: Check if this might actually be a successful token
+            # that experienced temporary crashes but recovered
+            if self._has_successful_recovery_patterns(m):
+                logger.info(f"Rugpull patterns detected BUT successful recovery patterns override → checking for success")
+                # Don't return rugpull immediately, let it flow through success checks
+            else:
+                return "rugpull"
+        
         # HARD RULE #2: If ATH was reached within first 72h, token can NEVER be successful
         # This eliminates hype-only tokens that never grew beyond initial pump
+        # BUT rugpulls are already caught above, so this only affects success classification
         if self._ath_was_within_72h(m):
             logger.debug(f"ATH within 72h - disqualified from success classification")
-            # Still check for other rugpull patterns vs inactive vs unsuccessful
-            if self._is_coordinated_rugpull_non_liquidity(m):
-                return "rugpull"
-            elif self._is_truly_inactive(m):
+            # Only check for inactive vs unsuccessful (rugpulls already handled above)
+            if self._is_truly_inactive(m):
                 return "inactive"
             else:
                 return "unsuccessful"
-        
-        # PHASE 1: Other rugpull patterns (excluding liquidity removal which was checked first)
-        if self._is_coordinated_rugpull_non_liquidity(m):
-            return "rugpull"
         
         # PHASE 2: True inactivity check 
         # Minimal transactions and holders from launch
@@ -748,12 +769,17 @@ class EnhancedTokenLabeler:
         if self._is_sustained_growth_success(m):
             return "successful"
         
-        # PHASE 4: Historical success with stability indicators
+        # PHASE 4: Recovery-based success (tokens that survived crashes and recovered)
+        # This catches tokens that may have shown rugpull patterns but successfully recovered
+        if self._is_recovery_based_success(m):
+            return "successful"
+        
+        # PHASE 5: Historical success with stability indicators
         # High appreciation combined with stability patterns (not override)
         if self._is_historical_stable_success(m):
             return "successful"
         
-        # PHASE 5: Default classification
+        # PHASE 6: Default classification
         # Tokens with some activity but not meeting success criteria
         return "unsuccessful"
 
@@ -2062,6 +2088,9 @@ class EnhancedTokenLabeler:
         If ATH was within 72h, the token never grew beyond initial hype period
         and should NEVER be classified as successful regardless of other factors.
         
+        NOTE: Rugpulls are detected BEFORE this check, so early rugpulls within 72h
+        will be properly classified as "rugpull" rather than being caught by this rule.
+        
         Returns True if ATH was within 72h (disqualifies from success)
         Returns False if ATH was after 72h (allows success consideration)
         """
@@ -2081,3 +2110,87 @@ class EnhancedTokenLabeler:
             logger.debug(f"ATH after 72h: grew {growth_ratio:.2f}x beyond 72h peak")
             
         return ath_within_72h
+
+    def _has_successful_recovery_patterns(self, m: TokenMetrics) -> bool:
+        """
+        DOUBLE VERIFICATION: Check if token shows successful recovery patterns
+        that should override rugpull classification.
+        
+        This prevents successful tokens with temporary crashes from being mislabeled as rugpulls.
+        
+        Key indicators of successful recovery:
+        - Multiple volume spikes after crashes
+        - Sustained growth periods
+        - Strong community retention
+        - Recovery to significant percentage of ATH
+        - Continued activity and engagement
+        """
+        recovery_score = 0
+        
+        # Criterion 1: Strong recovery after major drops
+        if m.max_recovery_after_drop and m.max_recovery_after_drop >= 10.0:
+            recovery_score += 2
+            logger.debug(f"Strong recovery: {m.max_recovery_after_drop:.1f}x recovery after drop")
+        
+        # Criterion 2: Current price retention (not completely collapsed)
+        if m.current_vs_ath_ratio and m.current_vs_ath_ratio >= 0.10:  # Retains 10%+ of ATH
+            recovery_score += 2
+            logger.debug(f"Good retention: {m.current_vs_ath_ratio:.2%} of ATH retained")
+        elif m.current_vs_ath_ratio and m.current_vs_ath_ratio >= 0.05:  # Retains 5%+ of ATH
+            recovery_score += 1
+            logger.debug(f"Moderate retention: {m.current_vs_ath_ratio:.2%} of ATH retained")
+        
+        # Criterion 3: Strong ongoing community (high holder count)
+        if m.holder_count and m.holder_count >= 100:
+            recovery_score += 2
+            logger.debug(f"Strong community: {m.holder_count} holders")
+        elif m.holder_count and m.holder_count >= 50:
+            recovery_score += 1
+            logger.debug(f"Moderate community: {m.holder_count} holders")
+        
+        # Criterion 4: Ongoing volume activity (not dead)
+        if m.volume_24h and m.volume_24h >= 10000:  # $10k+ daily volume
+            recovery_score += 2
+            logger.debug(f"Active volume: ${m.volume_24h:.0f} daily")
+        elif m.volume_24h and m.volume_24h >= 1000:  # $1k+ daily volume
+            recovery_score += 1
+            logger.debug(f"Moderate volume: ${m.volume_24h:.0f} daily")
+        
+        # Criterion 5: Current trend is not severely declining
+        if m.current_trend == "recovering":
+            recovery_score += 2
+            logger.debug(f"Recovering trend")
+        elif m.current_trend == "stable":
+            recovery_score += 1
+            logger.debug(f"Stable trend")
+        
+        # Criterion 6: Not too long since last meaningful activity
+        if m.days_since_last_major_drop is not None:
+            if m.days_since_last_major_drop <= 30:  # Recent activity
+                recovery_score += 1
+                logger.debug(f"Recent activity: {m.days_since_last_major_drop} days since last drop")
+        
+        # Criterion 7: Historical peak volume indicates past success
+        if hasattr(m, 'peak_volume') and m.peak_volume and m.peak_volume >= 50000:
+            recovery_score += 1
+            logger.debug(f"Historical success: ${m.peak_volume:.0f} peak volume")
+        
+        # Criterion 8: Shows recovery ability (not just one-time pump)
+        if m.has_shown_recovery:
+            recovery_score += 1
+            logger.debug(f"Has shown recovery ability")
+        
+        # Criterion 9: ATH reached after 72h (indicates sustained growth, not just hype)
+        if not self._ath_was_within_72h(m):
+            recovery_score += 2
+            logger.debug(f"ATH after 72h indicates sustained growth pattern")
+        
+        # DECISION THRESHOLD: Need significant evidence of recovery
+        min_recovery_score = 6  # Requires multiple strong indicators
+        
+        if recovery_score >= min_recovery_score:
+            logger.info(f"Successful recovery patterns detected (score: {recovery_score}/{min_recovery_score}) - overriding rugpull classification")
+            return True
+        else:
+            logger.debug(f"Insufficient recovery patterns (score: {recovery_score}/{min_recovery_score}) - rugpull classification stands")
+            return False
