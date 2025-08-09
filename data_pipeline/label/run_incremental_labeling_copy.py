@@ -24,11 +24,8 @@ import os
 from pathlib import Path
 import pandas as pd
 
-# Import from the copy file (need to handle the space in filename)
-sys.path.insert(0, os.path.dirname(__file__))
-import importlib
-token_labeler_copy = importlib.import_module('token_labeler copy')
-EnhancedTokenLabeler = token_labeler_copy.EnhancedTokenLabeler
+# Import the enhanced token labeler
+from token_labeler_copy import EnhancedTokenLabeler
 
 def setup_logging():
     """Setup logging with both file and console output."""
