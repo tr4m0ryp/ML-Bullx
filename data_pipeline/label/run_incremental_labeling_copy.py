@@ -46,6 +46,9 @@ async def main():
     parser.add_argument("--batch-size", type=int, default=10, help="Batch size for processing (default: 10)")
     parser.add_argument("--config", help="Path to config file (optional)")
     parser.add_argument("--reset", action="store_true", help="Reset progress and start from the beginning (ignores existing output)")
+    parser.add_argument("--allow-insufficient", action="store_true", help="Allow coercing partial data into labels (default: use INSUFFICIENT_DATA label)")
+    parser.add_argument("--limit", type=int, help="Limit number of tokens to process (for debugging)")
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging and failure tracking")
     
     args = parser.parse_args()
     
@@ -63,10 +66,18 @@ async def main():
     logger.info(f"📁 Input: {args.input_csv}")
     logger.info(f"📁 Output: {args.output_csv}")
     logger.info(f"📦 Batch size: {args.batch_size}")
+    if args.limit:
+        logger.info(f"🚧 LIMIT MODE: Processing only {args.limit} tokens")
     if args.reset:
         logger.info("🔄 RESET MODE: Will start from the beginning, ignoring existing progress")
     else:
         logger.info("📝 RESUME MODE: Will continue from existing progress if available")
+    if args.allow_insufficient:
+        logger.info("⚠️  ALLOW INSUFFICIENT: Will coerce partial data into labels")
+    else:
+        logger.info("🛡️  ROBUST MODE: Will use INSUFFICIENT_DATA label for incomplete data")
+    if args.debug:
+        logger.info("🐛 DEBUG MODE: Enhanced logging and failure tracking enabled")
     logger.info("=" * 80)
     
     try:
@@ -81,12 +92,17 @@ async def main():
                     logger.info("✅ All tokens have already been processed!")
                     return
             
+            # Set labeler options based on args
+            labeler.allow_insufficient_data = args.allow_insufficient
+            labeler.debug_mode = args.debug
+            
             # Run the labeling process with incremental saving
             await labeler.label_tokens_from_csv(
                 inp=args.input_csv,
                 out=args.output_csv,
                 batch=args.batch_size,
-                reset_progress=args.reset
+                reset_progress=args.reset,
+                limit=args.limit
             )
             
             # Load the final results from the CSV for the report

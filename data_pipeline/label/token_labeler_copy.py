@@ -35,6 +35,14 @@ import pandas as pd
 # Import the rugpull vs success detector
 from rugpull_vs_success_detector import analyze_token_legitimacy, RugpullVsSuccessDetector
 
+# Import fallback calculations
+try:
+    from fallback_calculations import FallbackCalculations
+    FALLBACK_CALCULATIONS_AVAILABLE = True
+except ImportError:
+    FALLBACK_CALCULATIONS_AVAILABLE = False
+    logger.warning("Fallback calculations not available")
+
 # Add pipeline path for imports
 pipeline_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "on_chain_solana_pipeline")
 sys.path.insert(0, pipeline_dir)
@@ -124,7 +132,7 @@ class EnhancedTokenLabeler:
     SUCCESSFUL: Tokens with proven sustained growth patterns
     RUGPULL: Coordinated dumps with clear malicious intent  
     INACTIVE: Tokens that never gained meaningful traction
-    UNSUCCESSFUL: Everything else (failed attempts at success)
+    UNSUCCESSFUL: Everything else (active but not successful enough)
     """
     
     # === CORE SUCCESS CRITERIA ===
@@ -175,6 +183,9 @@ class EnhancedTokenLabeler:
     def __init__(self, config_path: str = None):
         self.config = load_config(config_path)
         self.data_provider: Optional[OnChainDataProvider] = None
+        # Configuration options
+        self.allow_insufficient_data = False
+        self.debug_mode = False
 
     # ── async context ──
     async def __aenter__(self):
@@ -196,7 +207,7 @@ class EnhancedTokenLabeler:
             await self.data_provider.__aexit__(*exc)
 
     # ────────── CSV driver ──────────
-    async def label_tokens_from_csv(self, inp: str, out: str, batch: int = 20, reset_progress: bool = False) -> pd.DataFrame:
+    async def label_tokens_from_csv(self, inp: str, out: str, batch: int = 20, reset_progress: bool = False, limit: Optional[int] = None) -> pd.DataFrame:
         """Label tokens from CSV using on-chain data with incremental saving."""
         df = pd.read_csv(inp)
         if "mint_address" not in df.columns:
@@ -338,17 +349,42 @@ class EnhancedTokenLabeler:
     def _init_output_csv(self, output_path: str, overwrite: bool = False) -> None:
         """Initialize CSV file with headers if it doesn't exist or if overwrite is True."""
         if overwrite or not os.path.exists(output_path):
-            pd.DataFrame(columns=["mint_address", "label"]).to_csv(output_path, index=False)
+            # Updated CSV schema with required columns
+            columns = [
+                "mint_address", "label", "label_reason", "peak_72h", "avg_post_72h", 
+                "has_historical_data", "price_points_count", "volume_24h"
+            ]
+            pd.DataFrame(columns=columns).to_csv(output_path, index=False)
             if overwrite:
                 logger.info(f"Re-initialized (overwrote) output CSV file: {output_path}")
             else:
                 logger.info(f"Initialized output CSV file: {output_path}")
 
-    def _append_to_csv(self, output_path: str, result: Tuple[str, str]) -> None:
+    def _append_to_csv(self, output_path: str, result) -> None:
         """Append a single result to the CSV file."""
         try:
+            # Handle both old tuple format and new dict format
+            if isinstance(result, tuple) and len(result) == 2:
+                # Legacy format - convert to new schema
+                mint_address, label = result
+                row_data = {
+                    "mint_address": mint_address,
+                    "label": label,
+                    "label_reason": "legacy_format",
+                    "peak_72h": None,
+                    "avg_post_72h": None,
+                    "has_historical_data": False,
+                    "price_points_count": 0,
+                    "volume_24h": None
+                }
+            elif isinstance(result, dict):
+                row_data = result
+            else:
+                logger.error(f"Invalid result format: {type(result)}")
+                return
+                
             # Create a DataFrame with the single result
-            result_df = pd.DataFrame([result], columns=["mint_address", "label"])
+            result_df = pd.DataFrame([row_data])
             
             # Append to existing file
             result_df.to_csv(output_path, mode='a', header=False, index=False)
@@ -417,14 +453,34 @@ class EnhancedTokenLabeler:
         return stats
 
     # ────────── Per‑token flow ──────────
-    async def _process(self, mint: str) -> Optional[Tuple[str, str]]:
+    async def _process(self, mint: str) -> Optional[Dict[str, Any]]:
         m = await self._gather_metrics(mint)
         if not self._has_any_data(m):
             logger.info("%s – skipped (no on-chain data)", mint)
             return None
         label = self._classify(m)
+        label_reason = self._get_label_reason(m, label)
         self._log_classification_reasoning(m, label)  # Log the reasoning
-        return mint, label
+        
+        # Determine price points count
+        price_points_count = 0
+        if m.legitimacy_analysis:
+            # Try to extract from OHLCV data or volume drop events
+            volume_drops = m.legitimacy_analysis.get('volume_drop_events', [])
+            recovery_patterns = m.legitimacy_analysis.get('recovery_patterns', [])
+            if volume_drops or recovery_patterns:
+                price_points_count = len(volume_drops) + len(recovery_patterns)
+        
+        return {
+            "mint_address": mint,
+            "label": label,
+            "label_reason": label_reason,
+            "peak_72h": m.peak_price_72h if m.peak_price_72h else None,
+            "avg_post_72h": m.avg_price_post_72h if m.avg_price_post_72h else None,
+            "has_historical_data": bool(m.ath_before_72h or m.ath_after_72h),
+            "price_points_count": price_points_count,
+            "volume_24h": m.volume_24h if m.volume_24h else None
+        }
 
     # --- helpers ----------------------------------------------------------
     @staticmethod
@@ -432,20 +488,158 @@ class EnhancedTokenLabeler:
         """
         Check if we have any data to make a classification decision.
         
-        Even tokens without current on-chain activity can be classified as:
-        - INACTIVE if they never had significant activity
-        - SUCCESSFUL if they have historical evidence of success
+        Now accepts tokens with minimal data and relies on enhanced fallback mechanisms.
         """
-        # Accept tokens that have any of these data points
-        return (
-            m.current_price is not None or 
-            m.holder_count is not None or
-            m.volume_24h is not None or
-            m.launch_price is not None or
-            # Accept all tokens - we can always make some classification
-            # even if it's just INACTIVE for lack of data
-            True
-        )
+        # We now accept almost any token for processing
+        # The legitimacy analysis and classification will handle sparse data gracefully
+        return True  # Always attempt to classify, let the classification handle edge cases
+
+    def _has_insufficient_data(self, m: TokenMetrics) -> bool:
+        """
+        Check if token has insufficient data for reliable classification.
+        """
+        # Check for minimal price data
+        has_price_data = bool(m.current_price or m.launch_price or m.peak_price_72h)
+        
+        # Check for minimal volume data  
+        has_volume_data = bool(m.volume_24h or m.historical_avg_volume)
+        
+        # Check for minimal historical data (price points)
+        has_historical_data = bool(m.ath_before_72h or m.ath_after_72h)
+        
+        # Count how many data points we have from legitimacy analysis
+        price_points_count = 0
+        if m.legitimacy_analysis and m.legitimacy_analysis.get('data_quality') in ('none', 'minimal'):
+            # Very sparse data
+            return True
+        
+        # If we have legitimacy analysis but it shows insufficient data
+        if m.legitimacy_analysis:
+            classification_hint = m.legitimacy_analysis.get('classification_hint', '')
+            if classification_hint in ('insufficient_data', 'analysis_failed', 'single_data_point'):
+                return True
+        
+        # Consider insufficient if we have none of the core data types
+        if not has_price_data and not has_volume_data and not has_historical_data:
+            return True
+            
+        return False
+    
+    def _get_label_reason(self, m: TokenMetrics, label: str) -> str:
+        """
+        Get detailed reason for the label assignment.
+        """
+        if label == "INSUFFICIENT_DATA":
+            # Determine specific reason for insufficient data
+            if m.legitimacy_analysis:
+                classification_hint = m.legitimacy_analysis.get('classification_hint', '')
+                if classification_hint == 'insufficient_data':
+                    return 'insufficient_swap_price_points'
+                elif classification_hint == 'single_data_point':
+                    return 'single_price_data_point'
+                elif classification_hint == 'analysis_failed':
+                    return 'legitimacy_analysis_failed'
+            return 'insufficient_historical_data'
+        elif label == "successful":
+            if self._is_legendary_historical_success(m):
+                return 'legendary_historical_performance'
+            elif self._is_breakthrough_success_with_legitimacy(m, None, 0.7):
+                return 'success_via_legitimacy_and_72h_peak'
+            else:
+                return 'traditional_success_metrics'
+        elif label == "rugpull":
+            if m.liquidity_removal_detected:
+                return 'coordinated_liquidity_removal'
+            else:
+                return 'coordinated_dump_pattern'
+        elif label == "inactive":
+            return 'no_meaningful_trading_activity'
+        else:  # unsuccessful
+            return 'active_but_insufficient_success_metrics'
+
+    async def _apply_fallback_calculations(self, t: TokenMetrics, hist_data) -> None:
+        """
+        Apply fallback calculations for missing critical data.
+        
+        Args:
+            t: TokenMetrics object to enhance
+            hist_data: Historical data from analysis
+        """
+        if not FALLBACK_CALCULATIONS_AVAILABLE:
+            return
+            
+        try:
+            # Extract swap data from historical analysis
+            swap_data = []
+            ohlcv_data = []
+            
+            if hasattr(hist_data, 'ohlcv') and hist_data.ohlcv:
+                for candle in hist_data.ohlcv:
+                    if isinstance(candle, dict):
+                        ohlcv_data.append(candle)
+                        # Convert OHLCV to swap-like data
+                        swap_data.append({
+                            'timestamp': candle.get('ts', candle.get('timestamp', 0)),
+                            'price': candle.get('c', 0),  # Close price
+                            'volume_usd': candle.get('v', 0)  # Volume
+                        })
+            
+            # Fallback volume calculations
+            if not t.volume_24h:
+                fallback_24h = FallbackCalculations.calculate_volume_24h_from_swaps(swap_data)
+                if fallback_24h and fallback_24h > 0:
+                    t.volume_24h = fallback_24h
+                    logger.info(f"Applied fallback 24h volume for {t.mint_address}: ${fallback_24h:.2f}")
+            
+            if not t.historical_avg_volume:
+                fallback_historical_avg = FallbackCalculations.calculate_historical_avg_volume(swap_data)
+                if fallback_historical_avg and fallback_historical_avg > 0:
+                    t.historical_avg_volume = fallback_historical_avg
+                    logger.info(f"Applied fallback historical avg volume for {t.mint_address}: ${fallback_historical_avg:.2f}")
+            
+            if not t.peak_volume:
+                fallback_peak_vol = FallbackCalculations.calculate_peak_volume(swap_data, ohlcv_data)
+                if fallback_peak_vol and fallback_peak_vol > 0:
+                    t.peak_volume = fallback_peak_vol
+                    logger.info(f"Applied fallback peak volume for {t.mint_address}: ${fallback_peak_vol:.2f}")
+            
+            # Fallback launch price detection
+            if not t.launch_price:
+                fallback_launch = FallbackCalculations.detect_launch_price(swap_data, ohlcv_data)
+                if fallback_launch and fallback_launch > 0:
+                    t.launch_price = fallback_launch
+                    logger.info(f"Applied fallback launch price for {t.mint_address}: ${fallback_launch:.8f}")
+                    
+                    # Recalculate mega appreciation if we now have launch price
+                    if t.post_ath_peak_price and t.launch_price > 0:
+                        t.mega_appreciation = t.post_ath_peak_price / t.launch_price
+                        logger.debug(f"Recalculated mega_appreciation with fallback launch price: {t.mega_appreciation}")
+            
+            # Transaction rate calculation
+            if not t.transaction_count_daily_avg:
+                fallback_tx_rate = FallbackCalculations.calculate_transaction_rate(swap_data)
+                if fallback_tx_rate and fallback_tx_rate > 0:
+                    t.transaction_count_daily_avg = fallback_tx_rate
+                    logger.debug(f"Applied fallback transaction rate for {t.mint_address}: {fallback_tx_rate:.2f} tx/day")
+            
+            # Market cap calculation (if we have both price and can get supply)
+            if not t.market_cap and t.current_price and t.current_price > 0:
+                try:
+                    # Try to get token supply via RPC if data provider supports it
+                    if hasattr(self.data_provider, '_rpc_client') and self.data_provider._rpc_client:
+                        token_supply = await FallbackCalculations.get_token_supply_rpc(
+                            t.mint_address, self.data_provider._rpc_client
+                        )
+                        if token_supply:
+                            market_cap = FallbackCalculations.calculate_market_cap(t.current_price, token_supply)
+                            if market_cap:
+                                t.market_cap = market_cap
+                                logger.info(f"Applied fallback market cap for {t.mint_address}: ${market_cap:,.2f}")
+                except Exception as e:
+                    logger.debug(f"RPC market cap calculation failed for {t.mint_address}: {e}")
+                    
+        except Exception as e:
+            logger.warning(f"Error applying fallback calculations for {t.mint_address}: {e}")
 
     async def _gather_metrics(self, mint: str) -> TokenMetrics:
         """Gather metrics using on-chain data provider."""
@@ -522,6 +716,10 @@ class EnhancedTokenLabeler:
             
             # Apply legitimacy analysis
             t.legitimacy_analysis = hist_metrics.get("legitimacy_analysis")
+            
+            # Apply fallback calculations for critical missing data
+            if FALLBACK_CALCULATIONS_AVAILABLE:
+                await self._apply_fallback_calculations(t, hist_data)
             
             # Legacy metrics (keep for compatibility)
             t.ath_72h_sustained = hist_metrics.get("ath_breakthrough", False)  # Use breakthrough as proxy
@@ -798,9 +996,24 @@ class EnhancedTokenLabeler:
             transaction_count_daily_avg = 0
 
         # NEW: Perform legitimacy analysis using the rugpull vs success detector
-        legitimacy_analysis = analyze_token_legitimacy(ohlcv)
-        logger.debug(f"Legitimacy analysis result: {legitimacy_analysis.get('classification_hint', 'unknown')} "
-                    f"(score: {legitimacy_analysis.get('overall_legitimacy_score', 0.0):.2f})")
+        # Always attempt legitimacy analysis, even with sparse data
+        try:
+            legitimacy_analysis = analyze_token_legitimacy(ohlcv)
+            logger.debug(f"Legitimacy analysis result: {legitimacy_analysis.get('classification_hint', 'unknown')} "
+                        f"(score: {legitimacy_analysis.get('overall_legitimacy_score', 0.0):.2f}) "
+                        f"[data quality: {legitimacy_analysis.get('data_quality', 'unknown')}]")
+        except Exception as e:
+            logger.warning(f"Legitimacy analysis failed: {e}. Using fallback neutral analysis.")
+            # Provide fallback analysis
+            legitimacy_analysis = {
+                "volume_drop_events": [],
+                "recovery_patterns": [],
+                "overall_legitimacy_score": 0.5,
+                "classification_hint": "analysis_failed", 
+                "analysis_summary": f"Legitimacy analysis failed due to error: {str(e)[:100]}",
+                "legitimacy_score": 5.0,
+                "data_quality": "error"
+            }
 
         return {
             "has_sustained_drop": bad,
@@ -863,12 +1076,20 @@ class EnhancedTokenLabeler:
            - Not a clear rugpull or inactive
         """
         
+        # Check for insufficient data first
+        if not self.allow_insufficient_data and self._has_insufficient_data(m):
+            return "INSUFFICIENT_DATA"
+            
         # Get legitimacy analysis hint if available
         legitimacy_hint = None
         legitimacy_score = 0.5  # Default neutral score
         if m.legitimacy_analysis:
             legitimacy_hint = m.legitimacy_analysis.get("classification_hint", "unclear")
             legitimacy_score = m.legitimacy_analysis.get("overall_legitimacy_score", 0.5)
+            
+            # Handle insufficient data from legitimacy analysis
+            if not self.allow_insufficient_data and legitimacy_hint in ("insufficient_data", "analysis_failed", "single_data_point"):
+                return "INSUFFICIENT_DATA"
         
         # STEP 1: Check for clear rugpull patterns with legitimacy verification
         if self._is_coordinated_rugpull_with_legitimacy(m, legitimacy_hint, legitimacy_score):
@@ -958,6 +1179,12 @@ class EnhancedTokenLabeler:
         between actual rugpulls and successful coins with natural volatility.
         """
         
+        # Handle cases with insufficient data for legitimacy analysis
+        if legitimacy_hint in ("insufficient_data", "analysis_failed", "single_data_point"):
+            logger.debug(f"Insufficient data for legitimacy analysis: {legitimacy_hint}, using traditional detection")
+            # For sparse data, only flag as rugpull if we have very clear indicators
+            return self._is_rugpull_with_sparse_data(m)
+        
         # If legitimacy analysis strongly suggests rugpull, trust it
         if legitimacy_hint == "rugpull_likely" or legitimacy_score <= 0.3:
             logger.debug(f"Legitimacy analysis suggests rugpull: {legitimacy_hint}, score: {legitimacy_score:.2f}")
@@ -1003,6 +1230,36 @@ class EnhancedTokenLabeler:
                 return True
         
         return False
+
+    def _is_rugpull_with_sparse_data(self, m: TokenMetrics) -> bool:
+        """
+        Conservative rugpull detection for sparse data scenarios.
+        Only flag as rugpull if we have very clear, unambiguous indicators.
+        """
+        # With sparse data, we need very strong indicators
+        clear_indicators = 0
+        
+        # Clear liquidity removal is a strong indicator
+        if m.liquidity_removal_detected:
+            clear_indicators += 1
+        
+        # Extreme price crash (>95%) with no recovery signs
+        if m.peak_price_72h and m.current_price:
+            crash_severity = (m.peak_price_72h - m.current_price) / m.peak_price_72h
+            if crash_severity > 0.95:
+                clear_indicators += 1
+        
+        # Very low holder count after having activity
+        if m.holder_count and m.holder_count < 5 and m.volume_24h and m.volume_24h > 0:
+            clear_indicators += 1
+            
+        # Very low current volume compared to historical
+        if (m.historical_avg_volume and m.volume_24h and 
+            m.volume_24h < m.historical_avg_volume * 0.05):  # <5% of historical average
+            clear_indicators += 1
+        
+        # Need at least 2 clear indicators for sparse data classification
+        return clear_indicators >= 2
 
     def _is_mega_rugpull_pattern(self, m: TokenMetrics) -> bool:
         """
@@ -1243,6 +1500,12 @@ class EnhancedTokenLabeler:
         between actual success and artificial pump patterns.
         """
         
+        # Handle cases with insufficient data for legitimacy analysis
+        if legitimacy_hint in ("insufficient_data", "analysis_failed", "single_data_point"):
+            logger.debug(f"Insufficient data for legitimacy analysis: {legitimacy_hint}, using traditional detection")
+            # Fall back to traditional success detection with slightly relaxed requirements
+            return self._is_breakthrough_success_with_fallback(m)
+        
         # If legitimacy analysis strongly suggests success, be more lenient with requirements
         if legitimacy_hint == "success_likely" or legitimacy_score >= 0.7:
             logger.debug(f"Legitimacy analysis suggests success: {legitimacy_hint}, score: {legitimacy_score:.2f}")
@@ -1286,6 +1549,39 @@ class EnhancedTokenLabeler:
         else:
             logger.debug(f"Unclear legitimacy: {legitimacy_hint}, score: {legitimacy_score:.2f}, using traditional detection")
             return self._is_breakthrough_success(m)
+
+    def _is_breakthrough_success_with_fallback(self, m: TokenMetrics) -> bool:
+        """
+        Fallback breakthrough success detection for tokens with insufficient data.
+        Uses more lenient requirements when legitimacy analysis isn't available.
+        """
+        # Require at least some growth indicators when data is sparse
+        has_price_growth = (
+            (m.current_price and m.launch_price and m.current_price >= m.launch_price * 1.5) or  # 1.5x+ current
+            (m.peak_price_72h and m.launch_price and m.peak_price_72h >= m.launch_price * 3) or  # 3x+ peak
+            (m.mega_appreciation and m.mega_appreciation >= 10)  # 10x+ appreciation
+        )
+        
+        # Check for minimal community activity
+        has_minimal_activity = (
+            (m.holder_count and m.holder_count >= 10) or  # At least 10 holders
+            (m.volume_24h and m.volume_24h >= 1000) or  # $1000+ volume
+            (m.historical_avg_volume and m.historical_avg_volume >= 100)  # $100+ avg volume
+        )
+        
+        # Be more lenient about sustained growth when data is limited
+        has_some_sustainability = True  # Default to true for sparse data
+        if m.current_vs_ath_ratio is not None:
+            has_some_sustainability = m.current_vs_ath_ratio >= 0.1  # At least 10% of ATH
+        
+        # Require at least 2 of 3 criteria for sparse data success
+        criteria_met = sum([has_price_growth, has_minimal_activity, has_some_sustainability])
+        
+        if criteria_met >= 2:
+            logger.info(f"Success via fallback: met {criteria_met}/3 criteria with limited data")
+            return True
+            
+        return False
 
     def _has_72h_breakthrough(self, m: TokenMetrics) -> bool:
         """Check if ATH after 72h exceeds ATH before 72h."""

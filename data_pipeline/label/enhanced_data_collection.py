@@ -8,7 +8,8 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 import pandas as pd
 import asyncio
-from enhanced_parsing import enhanced_is_swap_transaction, enhanced_parse_swap_details
+from enhanced_parsing import enhanced_is_swap_transaction, enhanced_parse_swap_details, retry_with_exponential_backoff, log_parsing_failure
+from fallback_calculations import FallbackCalculations
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +55,13 @@ class EnhancedDataCollection:
         
         for i in range(0, max_tx, batch_size):
             batch_sigs = signatures[i:i + batch_size]
-            tasks = [data_provider._get_transaction_details(sig) for sig in batch_sigs]
-            transactions = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Use retry logic for transaction fetching
+            async def fetch_batch():
+                tasks = [data_provider._get_transaction_details(sig) for sig in batch_sigs]
+                return await asyncio.gather(*tasks, return_exceptions=True)
+            
+            transactions = await retry_with_exponential_backoff(fetch_batch)
             
             for j, tx in enumerate(transactions):
                 if isinstance(tx, dict) and tx:
@@ -74,13 +80,25 @@ class EnhancedDataCollection:
                             successful_parses += 1
                         else:
                             failed_parses += 1
+                            # Log parsing failure for debugging
+                            if j < len(batch_sigs):
+                                log_parsing_failure(mint, batch_sigs[j], "swap_parsing_failed")
                     else:
                         failed_parses += 1
+                        # Log parsing failure for debugging
+                        if j < len(batch_sigs):
+                            log_parsing_failure(mint, batch_sigs[j], "not_swap_transaction")
                 elif isinstance(tx, Exception):
                     logger.debug(f"Transaction fetch failed: {tx}")
                     rate_limited += 1
+                    # Log API failure
+                    if j < len(batch_sigs):
+                        log_parsing_failure(mint, batch_sigs[j], f"api_error:{str(tx)}")
                 else:
                     failed_parses += 1
+                    # Log unknown failure
+                    if j < len(batch_sigs):
+                        log_parsing_failure(mint, batch_sigs[j], "unknown_failure")
             
             # Shorter delay to reduce rate limiting impact
             await asyncio.sleep(0.2)
@@ -189,6 +207,53 @@ class EnhancedDataCollection:
             'price_range_ratio': (all_time_high / all_time_low) if all_time_low and all_time_low > 0 else None,
             'days_active': (df['datetime'].max() - df['datetime'].min()).days if len(df) > 1 else 0
         }
+        
+        # Apply fallback calculations for missing data
+        swap_data = []
+        for _, row in df.iterrows():
+            swap_data.append({
+                'timestamp': row['datetime'].timestamp(),
+                'price': row['price'],
+                'volume_usd': row.get('volume', 0)
+            })
+        
+        # Fallback calculations for critical missing metrics
+        if not result.get('volume_24h'):
+            fallback_24h = FallbackCalculations.calculate_volume_24h_from_swaps(swap_data)
+            if fallback_24h:
+                result['volume_24h'] = fallback_24h
+                logger.info(f"Applied fallback 24h volume: ${fallback_24h:.2f}")
+        
+        if not result.get('launch_price'):
+            fallback_launch = FallbackCalculations.detect_launch_price(swap_data, ohlcv.to_dict('records'))
+            if fallback_launch:
+                result['launch_price'] = fallback_launch
+                logger.info(f"Applied fallback launch price: ${fallback_launch:.8f}")
+        
+        # Add accurate price points count
+        price_points_count = FallbackCalculations.count_price_points(swap_data, ohlcv.to_dict('records'))
+        result['price_points_count'] = price_points_count
+        logger.debug(f"Counted {price_points_count} price data points")
+        
+        # Enhanced historical average volume calculation
+        if not result.get('avg_daily_volume') or result.get('avg_daily_volume', 0) == 0:
+            fallback_historical_avg = FallbackCalculations.calculate_historical_avg_volume(swap_data)
+            if fallback_historical_avg:
+                result['historical_avg_volume'] = fallback_historical_avg
+                logger.info(f"Applied fallback historical avg volume: ${fallback_historical_avg:.2f}")
+        
+        # Enhanced peak volume calculation  
+        if not result.get('peak_volume'):
+            fallback_peak_vol = FallbackCalculations.calculate_peak_volume(swap_data, ohlcv.to_dict('records'))
+            if fallback_peak_vol:
+                result['peak_volume'] = fallback_peak_vol
+                logger.info(f"Applied fallback peak volume: ${fallback_peak_vol:.2f}")
+        
+        # Transaction rate calculation
+        fallback_tx_rate = FallbackCalculations.calculate_transaction_rate(swap_data)
+        if fallback_tx_rate:
+            result['transaction_rate_daily'] = fallback_tx_rate
+            logger.debug(f"Calculated transaction rate: {fallback_tx_rate:.2f} tx/day")
         
         logger.debug(f"Enhanced _build_history_from_swaps for {mint}: Returning enhanced result with {len(result)} fields")
         return result
