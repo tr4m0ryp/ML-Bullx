@@ -1,10 +1,9 @@
-#ifndef AXIOM_REQUEST_HEADERS_H
-#define AXIOM_REQUEST_HEADERS_H
-
-#include <curl/curl.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <curl/curl.h>
 
-// Function to set all Axiom API headers
+//header requirements for api request
 struct curl_slist* set_axiom_request_headers(void) {
     struct curl_slist *headers = NULL;
     
@@ -28,5 +27,3 @@ struct curl_slist* set_axiom_request_headers(void) {
     
     return headers;
 }
-
-#endif
