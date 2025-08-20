@@ -1,3 +1,6 @@
+#ifndef API_REQUEST_H
+#define API_REQUEST_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -82,3 +85,5 @@ int api_request(char *pairAdress){
     curl_easy_cleanup(curl);
     return 0;
 }
+
+#endif // API_REQUEST_H

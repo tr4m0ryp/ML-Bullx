@@ -1,3 +1,6 @@
+#ifndef HEADER_H
+#define HEADER_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,7 +14,8 @@ struct curl_slist* set_axiom_request_headers(void) {
     headers = curl_slist_append(headers, "Accept: application/json, text/plain, */*");
     headers = curl_slist_append(headers, "Accept-Encoding: gzip, deflate, br, zstd");
     headers = curl_slist_append(headers, "Accept-Language: en-US,en;q=0.8");
-    headers = curl_slist_append(headers, "Cookie: auth-refresh-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZWZyZXNoVG9rZW5JZCI6ImIyOGIzYmFkLTQ0ZDktNDViOS1iZmExLTBhNmRkZGJiYjdmNCIsImlhdCI6MTc1NDMzNDg5N30.hS0AOlhntJXtGlEQmpQo1W6u214XozXb6shm2YmAjBQ; auth-access-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRoZW50aWNhdGVkVXNlcklkIjoiZWM5NWYxNTYtYjhkYi00MzBjLWIyMDgtNjcwZmJmOTBmMDViIiwiaWF0IjoxNzU1NTIyODIyLCJleHAiOjE3NTU1MjM3ODJ9.yYJKdvS1tsyR7hSXkeY-9WmMtXbPcs_kUs1j4DxcAew");
+    //headers = curl_slist_append(headers, "Cookie: auth-refresh-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZWZyZXNoVG9rZW5JZCI6ImIyOGIzYmFkLTQ0ZDktNDViOS1iZmExLTBhNmRkZGJiYjdmNCIsImlhdCI6MTc1NDMzNDg5N30.hS0AOlhntJXtGlEQmpQo1W6u214XozXb6shm2YmAjBQ; auth-access-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRoZW50aWNhdGVkVXNlcklkIjoiZWM5NWYxNTYtYjhkYi00MzBjLWIyMDgtNjcwZmJmOTBmMDViIiwiaWF0IjoxNzU1NTIyODIyLCJleHAiOjE3NTU1MjM3ODJ9.yYJKdvS1tsyR7hSXkeY-9WmMtXbPcs_kUs1j4DxcAew");
+    headers = curl_slist_append(headers, "Cookie: auth-refresh-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZWZyZXNoVG9rZW5JZCI6ImIyOGIzYmFkLTQ0ZDktNDViOS1iZmExLTBhNmRkZGJiYjdmNCIsImlhdCI6MTc1NDMzNDg5N30.hS0AOlhntJXtGlEQmpQo1W6u214XozXb6shm2YmAjBQ; auth-access-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRoZW50aWNhdGVkVXNlcklkIjoiZWM5NWYxNTYtYjhkYi00MzBjLWIyMDgtNjcwZmJmOTBmMDViIiwiaWF0IjoxNzU1NzEwOTE0LCJleHAiOjE3NTU3MTE4NzR9.5wWkAw1bM30lPXa3UpPSMHVopSCFwc4AQBbpwx4ffHk");
     headers = curl_slist_append(headers, "DNT: 1");
     headers = curl_slist_append(headers, "Origin: https://axiom.trade");
     headers = curl_slist_append(headers, "Priority: u=1, i");
@@ -27,3 +31,5 @@ struct curl_slist* set_axiom_request_headers(void) {
     
     return headers;
 }
+
+#endif // HEADER_H
