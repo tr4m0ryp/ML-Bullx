@@ -4,6 +4,20 @@
 #include <stdio.h>
 #include "../api_request.h"
 
+
+typedef struct{
+    char type[256];
+    float liquiditySol;
+    int liquidityToken;
+    float priceSol;
+    float priceUsd;
+    float tokenAmount;
+    float totalSol;
+    float totalUsd;
+    int innerIndex;
+    int outerIndex;
+} labelAlgorithmData;
+
 int last_transaction(char *pairAddress){
     char url[256];
     

@@ -69,10 +69,12 @@ int api_request(char *pairAdress){
         fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(result));
     } else {
         // Write response data to file
-        FILE *file = fopen("response_data.txt", "w");
+        FILE *file = fopen("response_data.txt", "a");
         if(file) {
-            fprintf(file, "%s", response_data.memory);
+            fseek(file, 0, SEEK_END);
+            fprintf(file, "%s \n", response_data.memory);
             fclose(file);
+            printf("Response data: %s\n", response_data.memory);
             printf("Response data saved to response_data.txt\n");
         } else {
             fprintf(stderr, "Failed to create response data file\n");

@@ -13,6 +13,7 @@ typedef struct{
         char **mint_address;
 }CSV_Data;
 
+
 //prototyping
 CSV_Data mint_token_csv(void);
 
@@ -23,14 +24,14 @@ int main (void){
     //int line = mint.number_of_lines;
     char **mint_add = mint.mint_address;
 
-    for(int i = 1; i < 5; i++){
+    for(int i = 1; i < 2; i++){
         search_pair(mint_add[i], &variable_data);
         printf("Token Ticker: %s\n", variable_data.tokenTicker);
         printf("Pair Addsress: %s\n", variable_data.pairAddress);
         printf("Creators: %s\n", variable_data.creator);
 
         dev_token(variable_data.creator);
-        holder_data(variable_data.pairAddress);
+        //holder_data(variable_data.pairAddress);
         last_transaction(variable_data.pairAddress);
         pair_info(variable_data.pairAddress);
         token_info_pair(variable_data.pairAddress);
@@ -64,7 +65,7 @@ CSV_Data mint_token_csv(void){
             number_of_lines++;
         }
     }
-    printf("Number of lines is %i\n", number_of_lines);
+    printf("Number of lsines is %i\n", number_of_lines);
 
     rewind(file);
     data.number_of_lines = number_of_lines;

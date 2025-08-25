@@ -4,6 +4,15 @@
 #include <stdio.h>
 #include "../api_request.h"
 
+typedef struct{
+    int initialLiquiditySol;
+    int initialLiquidityToken;
+    int supply;
+    float top10Holders;
+    float lpBurned;
+    bool has_freezeAuthority;
+    int slot;
+} labelAlgorithmData;
 
 int api_request(char *url);
 

@@ -13,6 +13,25 @@ typedef struct {
     char creator[256];
 } SearchPairData;
 
+
+typedef struct{
+    char tokenTicker[256];
+    char pairAddress[256];
+    char tokenAddress[256];
+    int tokenDecimals;
+    int supply;
+    int liquiditySol;
+    int liquidityToken;
+    int marketCapSol;
+    int bondingCurvePercent;
+    int volumeSol;
+    bool has_website;
+    bool has_twitter;
+    bool has_telegram;
+    bool has_extra;
+    bool has_dexPaid;
+}labelAlgorithmData;
+
 // Function declarations
 int search_token_Data(SearchPairData *data);
 

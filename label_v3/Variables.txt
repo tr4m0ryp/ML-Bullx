@@ -1,0 +1,105 @@
+search_pair:
+typedef struct{
+    char tokenTicker[256];
+    char pairAddress[256];
+    char tokenAddress[256];
+    int tokenDecimals;
+    int supply;
+    int liquiditySol;
+    int liquidityToken;
+    int marketCapSol;
+    int bondingCurvePercent;
+    int volumeSol;
+    bool has_website;
+    bool has_twitter;
+    bool has_telegram;
+    bool has_extra;
+    bool has_dexPaid;
+}labelAlgorithmData;
+
+
+//not found
+baseSellRaw
+baseLockedRaw
+baseSupplyRaw
+quoteRaiseRaw
+
+dev_token_v2:
+typedef struct{
+    int totalCount;
+    int migratedCount;
+
+}labelAlgorithmData;
+
+
+
+last_transaction
+typedef struct{
+    char type[256];
+    float liquiditySol;
+    int liquidityToken;
+    float priceSol;
+    float priceUsd;
+    float tokenAmount;
+    float totalSol;
+    float totalUsd;
+    int innerIndex;
+    int outerIndex;
+} labelAlgorithmData;
+
+pair_info //most duplicates are in here:
+
+
+
+
+
+
+
+
+
+tokenDecimals
+initialLiquiditySol
+initialLiquidityToken
+supply
+top10Holders
+lpBurned
+has_freezeAuthority
+slot
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+token_info_pair:
+typedef struct{
+    float top10HoldersPercent;
+    float devHoldsPercent;
+    float snipersHoldPercent;
+    float insidersHoldPercent;
+    float bundlersHoldPercent;
+    int numHolders;
+    int numBotUsers;
+    float totalPairFeesPaid;
+} labelAlgorithmData;
+
+token_analysis:
+typedef struct{
+    float creatorRiskLevel;
+    int creatorRugCount;
+    int creatorTokenCount;
+    int amount_topMarketCapCoins;
+    int amount_topOgCoins;
+    float average_marketCap_TMCC;
+    float average_marketCap_TOC;
+} labelAlgorithmData; 

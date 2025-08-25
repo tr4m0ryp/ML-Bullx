@@ -5,6 +5,12 @@
 #include "../api_request.h"
 
 
+typedef struct{
+    int totalCount;
+    int migratedCount;
+
+}labelAlgorithmData;
+
 //protoypes
 int api_request(char *pairAdress);
 

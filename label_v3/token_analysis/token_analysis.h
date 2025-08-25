@@ -4,6 +4,16 @@
 #include <stdio.h>
 #include "../api_request.h"
 
+typedef struct{
+    float creatorRiskLevel;
+    int creatorRugCount;
+    int creatorTokenCount;
+    int amount_topMarketCapCoins;
+    int amount_topOgCoins;
+    float average_marketCap_TMCC;
+    float average_marketCap_TOC;
+} labelAlgorithmData; 
+
 int token_analysis(char *devAddress, char *tokenTicker) {
     char url[256];
     

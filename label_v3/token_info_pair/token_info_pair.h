@@ -5,6 +5,17 @@
 #include <stdio.h>
 #include "../api_request.h"
 
+typedef struct{
+    float top10HoldersPercent;
+    float devHoldsPercent;
+    float snipersHoldPercent;
+    float insidersHoldPercent;
+    float bundlersHoldPercent;
+    int numHolders;
+    int numBotUsers;
+    float totalPairFeesPaid;
+} labelAlgorithmData;
+
 int token_info_pair(char *pairAddress) {
     char url[256];
     
