@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "api_request.h"
 
 
@@ -30,7 +31,7 @@ typedef struct{
     bool has_telegram;
     bool has_extra;
     bool has_dexPaid;
-}labelAlgorithmData;
+}SearchPairTokenData;
 
 // Function declarations
 int search_token_Data(SearchPairData *data);

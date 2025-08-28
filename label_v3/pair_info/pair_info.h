@@ -2,6 +2,7 @@
 #define PAIR_INFO_H
 
 #include <stdio.h>
+#include <stdbool.h>
 #include "../api_request.h"
 
 typedef struct{
@@ -12,7 +13,7 @@ typedef struct{
     float lpBurned;
     bool has_freezeAuthority;
     int slot;
-} labelAlgorithmData;
+} PairInfoData;
 
 int api_request(char *url);
 

@@ -12,7 +12,7 @@ typedef struct{
     int amount_topOgCoins;
     float average_marketCap_TMCC;
     float average_marketCap_TOC;
-} labelAlgorithmData; 
+} TokenAnalysisData; 
 
 int token_analysis(char *devAddress, char *tokenTicker) {
     char url[256];

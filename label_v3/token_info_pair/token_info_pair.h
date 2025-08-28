@@ -14,7 +14,7 @@ typedef struct{
     int numHolders;
     int numBotUsers;
     float totalPairFeesPaid;
-} labelAlgorithmData;
+} TokenInfoPairData;
 
 int token_info_pair(char *pairAddress) {
     char url[256];

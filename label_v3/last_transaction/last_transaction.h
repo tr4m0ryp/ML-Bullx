@@ -16,7 +16,7 @@ typedef struct{
     float totalUsd;
     int innerIndex;
     int outerIndex;
-} labelAlgorithmData;
+} LastTransactionData;
 
 int last_transaction(char *pairAddress){
     char url[256];

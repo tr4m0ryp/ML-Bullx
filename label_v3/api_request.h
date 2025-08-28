@@ -85,7 +85,7 @@ int api_request(char *pairAdress){
     curl_slist_free_all(headers);
     free(response_data.memory);
     curl_easy_cleanup(curl);
-    return 0;
+    return result;
 }
 
 #endif // API_REQUEST_H
