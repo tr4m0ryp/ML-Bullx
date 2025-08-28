@@ -32,7 +32,7 @@ int pair_info(char *pairAddress){
     if (result == 0) {
         // Parse the response data
         pair_info_structure_filtering(&data);
-        FILE *file = fopen("response_data_filtered.txt", "a");
+        FILE *file = fopen("response_data_filtered.csv", "a");
         if (file) {
             fseek(file, 0, SEEK_END);
             fprintf(file, "%d, %d, %d, %f, %f, %d, %d, ",

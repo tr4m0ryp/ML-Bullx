@@ -33,7 +33,7 @@ int token_analysis(char *devAddress, char *tokenTicker) {
    if (result == 0){
     token_analysis_structure_filtering(&data);
     
-    FILE *file = fopen("response_data_filtered.txt", "a");
+    FILE *file = fopen("response_data_filtered.csv", "a");
     if(file){
         fseek(file, 0, SEEK_END);
         fprintf(file, "%f, %d, %d, %d, %d, %f, %f, ",

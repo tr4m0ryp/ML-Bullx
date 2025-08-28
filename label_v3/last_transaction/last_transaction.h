@@ -53,7 +53,7 @@ int last_transaction(char *pairAddress){
             response_data.memory = NULL;
         }
         
-        FILE *file = fopen("response_data_filtered.txt", "a");
+        FILE *file = fopen("response_data_filtered.csv", "a");
         fseek(file, 0, SEEK_END);
         fprintf(file, "%s, %f, %ld, %f, %f, %f, %f, %f, %d, %d, ",
                 data.type, data.liquiditySol, data.liquidityToken,

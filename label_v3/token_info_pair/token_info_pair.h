@@ -31,7 +31,7 @@ int token_info_pair(char *pairAddress) {
     int result =api_request(url);
     if(result == 0){
         token_info_pair_structure_filtering(&data);
-        FILE *file = fopen("response_data_filtered.txt", "a");
+        FILE *file = fopen("response_data_filtered.csv", "a");
         if(file){
             fseek(file, 0, SEEK_END);
             fprintf(file, "%f, %f, %f, %f, %f, %d, %d, %f",

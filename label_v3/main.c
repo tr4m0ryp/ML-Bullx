@@ -26,7 +26,7 @@ int main (void){
     char **mint_add = mint.mint_address;
 
 
-    FILE *file = fopen("response_data_filtered.txt", "w");
+    FILE *file = fopen("response_data_filtered.csv", "w");
     if(file){
         fprintf(file, "Dev_Total_count,Dev_Total_migrated_count,Type,LiquiditySOL,"
             "LiquidityToken,priceSOL,priceUsd,tokenAmount,totalSOL,TotalUSd,InnerIndex,OuterIndex,"
