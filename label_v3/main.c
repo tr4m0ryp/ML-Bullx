@@ -29,12 +29,12 @@ int main (void){
         search_pair(mint_add[i], &variable_data);
         printf("Token Ticker: %s\n", variable_data.tokenTicker);
         printf("Pasir Address: %s\n", variable_data.pairAddress);
-        printf("Creators: %s\n", variable_data.creator);
+        printf("Creatos: %s\n", variable_data.creator);
         
         dev_token(variable_data.creator);
         //holder_data(variable_data.pairAddress);
         last_transaction(variable_data.pairAddress);
-        //pair_info(variable_data.pairAddress);
+        pair_info(variable_data.pairAddress);
         //token_info_pair(variable_data.pairAddress);
         //token_analysis(variable_data.creator, variable_data.tokenTicker);
     }
