@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "./search_pair.h"
 #include "./dev_info/dev_token.h"
 #include "./holder_data/holder_data_v3.h"
@@ -27,12 +28,12 @@ int main (void){
     for(int i = 1; i < 2; i++){
         search_pair(mint_add[i], &variable_data);
         printf("Token Ticker: %s\n", variable_data.tokenTicker);
-        printf("Pasir Addsress: %s\n", variable_data.pairAddress);
-        printf("Credtors: %s\n", variable_data.creator);
-
+        printf("Pair Address: %s\n", variable_data.pairAddress);
+        printf("Creators: %s\n", variable_data.creator);
+        
         dev_token(variable_data.creator);
         //holder_data(variable_data.pairAddress);
-        //last_transaction(variable_data.pairAddress);
+        last_transaction(variable_data.pairAddress);
         //pair_info(variable_data.pairAddress);
         //token_info_pair(variable_data.pairAddress);
         //token_analysis(variable_data.creator, variable_data.tokenTicker);

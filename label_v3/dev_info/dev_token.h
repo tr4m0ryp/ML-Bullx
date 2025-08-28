@@ -10,16 +10,16 @@ typedef struct{
     int totalCount;
     int migratedCount;
 
-}labelAlgorithmData;
+}DevTokenData;
 
 //protoypes
 int api_request(char *pairAdress);
-int structure_filtering(labelAlgorithmData *data);
+int dev_token_structure_filtering(DevTokenData *data);
 
 
 int dev_token(char *creator_address)
 {
-    labelAlgorithmData data;
+    DevTokenData data;
 
     char url[256];
     snprintf(url, sizeof(url), "https://api9.axiom.trade/dev-tokens-v2?devAddress=%s", creator_address);
@@ -27,9 +27,9 @@ int dev_token(char *creator_address)
     
     if (result == 0) {
         // Parse the response data
-        structure_filtering(&data);
-        
-        FILE *file = fopen("response_data.txt", "a");
+        dev_token_structure_filtering(&data);
+
+        FILE *file = fopen("response_data_filtered.txt", "a");
         if(file) {
             fseek(file, 0, SEEK_END);
             fprintf(file, "%d, %d \n", data.totalCount, data.migratedCount);
@@ -45,7 +45,7 @@ int dev_token(char *creator_address)
 
 
 
-int structure_filtering(labelAlgorithmData *data){
+int dev_token_structure_filtering(DevTokenData *data){
    char *json_data = response_data.memory;
    
    // Initialize data structure
