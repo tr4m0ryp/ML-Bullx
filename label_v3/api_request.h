@@ -83,8 +83,8 @@ int api_request(char *pairAdress){
 
     // Cleanup
     curl_slist_free_all(headers);
-    free(response_data.memory);
     curl_easy_cleanup(curl);
+    // DON'T free response_data.memory here - it will be freed after filtering
     return result;
 }
 

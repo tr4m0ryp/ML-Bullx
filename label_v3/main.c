@@ -28,7 +28,7 @@ int main (void){
     for(int i = 1; i < 2; i++){
         search_pair(mint_add[i], &variable_data);
         printf("Token Ticker: %s\n", variable_data.tokenTicker);
-        printf("Pair Address: %s\n", variable_data.pairAddress);
+        printf("Pasir Address: %s\n", variable_data.pairAddress);
         printf("Creators: %s\n", variable_data.creator);
         
         dev_token(variable_data.creator);
