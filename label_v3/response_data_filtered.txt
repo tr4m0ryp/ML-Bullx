@@ -1,10 +1,2 @@
-
-96, 0 
-sell, 30.003139, 1072887709, 0.000000, 0.000005, 65420.328125, 0.001830, 0.308293, -1, 2
-30, 1073000000, 1000000000, 5.000000, 100.000000, 255, 2
-0.000000, 0, 0, 1084227584, 1120403456, -nan, 0.000000 
-96, 0 
-sell, 30.003139, 1072887709, 0.000000, 0.000005, 65420.328125, 0.001830, 0.308293, -1, 2
-30, 1073000000, 1000000000, 5.000000, 100.000000, 255, 2
-0.011229, 0.000000, 0.000000, 0.000000, 0.000000, 2, 2, 0.001927
-0.011229, 0, 0, 0, 0, 0.000000, 0.000000 
+Dev_Total_count,Dev_Total_migrated_count,Type,LiquiditySOL,LiquidityToken,priceSOL,priceUsd,tokenAmount,totalSOL,TotalUSd,InnerIndex,OuterIndex,initialLiquiditySOL,InitialLiquidityToken,Supply,top10Holders,LpBurner,has_freezeAUthority,slot,CreatorRiskLevel,CreatorRugcount,CreatorTokenCount,Amount_topMarketCapcoins,Amount_topOgCoins,Average_marketcap_TMCC,Average_MarketCap_TOC,top10HoldersPercent,DevHoldsPervent,SniperHoldPercent,InsiderHoldPercent,BundlersHoldPercent,numHolders,numBotUsers,totalPairfeesPaid
+96, 0, sell, 30.003139, 1072887709, 0.000000, 0.000005, 65420.328125, 0.001830, 0.308293, -1, 2, 30, 1073000000, 1000000000, 5.000000, 100.000000, 255, 2, 0.011229, 0.000000, 0.000000, 0.000000, 0.000000, 2, 2, 0.0019270.000000, 0, 0, 1084227584, 1120403456, -nan, 0.000000, 

@@ -25,18 +25,30 @@ int main (void){
     //int line = mint.number_of_lines;
     char **mint_add = mint.mint_address;
 
+
+    FILE *file = fopen("response_data_filtered.txt", "w");
+    if(file){
+        fprintf(file, "Dev_Total_count,Dev_Total_migrated_count,Type,LiquiditySOL,"
+            "LiquidityToken,priceSOL,priceUsd,tokenAmount,totalSOL,TotalUSd,InnerIndex,OuterIndex,"
+            "initialLiquiditySOL,InitialLiquidityToken,Supply,top10Holders,LpBurner,has_freezeAUthority,slot,"
+            "CreatorRiskLevel,CreatorRugcount,CreatorTokenCount,Amount_topMarketCapcoins,Amount_topOgCoins,Average_marketcap_TMCC,Average_MarketCap_TOC,"
+            "top10HoldersPercent,DevHoldsPervent,SniperHoldPercent,InsiderHoldPercent,BundlersHoldPercent,numHolders,numBotUsers,totalPairfeesPaid\n"
+        );
+    }
+
+    fclose(file);
     for(int i = 1; i < 2; i++){
         search_pair(mint_add[i], &variable_data);
         printf("Token Ticker: %s\n", variable_data.tokenTicker);
-        printf("Pasir Address: %s\n", variable_data.pairAddress);
-        printf("Creatos: %s\n", variable_data.creator);
+        printf("Pair Address: %s\n", variable_data.pairAddress);
+        printf("Creator: %s\n", variable_data.creator);
         
         dev_token(variable_data.creator);
         //holder_data(variable_data.pairAddress);
         last_transaction(variable_data.pairAddress);
         pair_info(variable_data.pairAddress);
-        token_info_pair(variable_data.pairAddress);
         token_analysis(variable_data.creator, variable_data.tokenTicker);
+        token_info_pair(variable_data.pairAddress);
     }
 
     return 0;
@@ -51,7 +63,7 @@ CSV_Data mint_token_csv(void){
     //opening the file
     FILE *file = fopen("input.csv", "r");
     if(file == NULL){
-        fprintf(stderr, "Could not open file input.csv\n");
+        fprintf(stderr, "Could noot open file input.csv\n");
         return data;
     }
 

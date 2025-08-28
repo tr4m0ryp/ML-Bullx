@@ -55,7 +55,7 @@ int last_transaction(char *pairAddress){
         
         FILE *file = fopen("response_data_filtered.txt", "a");
         fseek(file, 0, SEEK_END);
-        fprintf(file, "%s, %f, %ld, %f, %f, %f, %f, %f, %d, %d\n",
+        fprintf(file, "%s, %f, %ld, %f, %f, %f, %f, %f, %d, %d, ",
                 data.type, data.liquiditySol, data.liquidityToken,
                 data.priceSol, data.priceUsd, data.tokenAmount,
                 data.totalSol, data.totalUsd, data.innerIndex,

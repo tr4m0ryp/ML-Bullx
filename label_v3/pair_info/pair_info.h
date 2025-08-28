@@ -35,7 +35,7 @@ int pair_info(char *pairAddress){
         FILE *file = fopen("response_data_filtered.txt", "a");
         if (file) {
             fseek(file, 0, SEEK_END);
-            fprintf(file, "%d, %d, %d, %f, %f, %d, %d\n",
+            fprintf(file, "%d, %d, %d, %f, %f, %d, %d, ",
                     data.initialLiquiditySol, data.initialLiquidityToken,
                     data.supply, data.top10Holders, data.lpBurned,
                     data.has_freezeAuthority, data.slot);

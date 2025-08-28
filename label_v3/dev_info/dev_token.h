@@ -32,7 +32,7 @@ int dev_token(char *creator_address)
         FILE *file = fopen("response_data_filtered.txt", "a");
         if(file) {
             fseek(file, 0, SEEK_END);
-            fprintf(file, "%d, %d \n", data.totalCount, data.migratedCount);
+            fprintf(file, "%d, %d, ", data.totalCount, data.migratedCount);
             fclose(file);
             printf("Dev token data: totalCount=%d, migratedCount=%d\n", data.totalCount, data.migratedCount);
         } else {

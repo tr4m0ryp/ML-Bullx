@@ -36,7 +36,7 @@ int token_analysis(char *devAddress, char *tokenTicker) {
     FILE *file = fopen("response_data_filtered.txt", "a");
     if(file){
         fseek(file, 0, SEEK_END);
-        fprintf(file, "%f, %d, %d, %d, %d, %f, %f \n",
+        fprintf(file, "%f, %d, %d, %d, %d, %f, %f, ",
                 data.creatorRiskLevel, data.creatorRugCount,
                 data.creatorTokenCount, data.amount_topMarketCapCoins,
                 data.amount_topOgCoins, data.average_marketCap_TMCC,
