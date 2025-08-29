@@ -37,7 +37,7 @@ int main (void){
     }
 
     fclose(file);
-    for(int i = 1; i < 2; i++){
+    for(int i = 1; i < 10; i++){
         search_pair(mint_add[i], &variable_data);
         printf("Token Ticker: %s\n", variable_data.tokenTicker);
         printf("Pair Address: %s\n", variable_data.pairAddress);

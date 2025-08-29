@@ -34,7 +34,7 @@ int token_info_pair(char *pairAddress) {
         FILE *file = fopen("response_data_filtered.csv", "a");
         if(file){
             fseek(file, 0, SEEK_END);
-            fprintf(file, "%f, %f, %f, %f, %f, %d, %d, %f",
+            fprintf(file, "%f, %f, %f, %f, %f, %d, %d, %f\n",
                     data.top10HoldersPercent, data.devHoldsPercent,
                     data.snipersHoldPercent, data.insidersHoldPercent,
                     data.bundlersHoldPercent, data.numHolders,
