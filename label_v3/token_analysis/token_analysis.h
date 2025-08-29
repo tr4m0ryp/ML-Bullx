@@ -32,6 +32,12 @@ int token_analysis(char *devAddress, char *tokenTicker) {
     int result = api_request(url);
    if (result == 0){
     token_analysis_structure_filtering(&data);
+
+    //free the memory
+    if(response_data.memory){
+        free(response_data.memory);
+        response_data.memory = NULL;
+    }
     
     FILE *file = fopen("response_data_filtered.csv", "a");
     if(file){

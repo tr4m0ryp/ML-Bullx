@@ -28,6 +28,12 @@ int dev_token(char *creator_address)
     if (result == 0) {
         // Parse the response data
         dev_token_structure_filtering(&data);
+        
+        //free the memory
+        if (response_data.memory) {
+            free(response_data.memory);
+            response_data.memory = NULL;
+        }
 
         FILE *file = fopen("response_data_filtered.csv", "a");
         if(file) {
@@ -39,7 +45,6 @@ int dev_token(char *creator_address)
             fprintf(stderr, "Failed to create response data file\n");
         }
     }
-    
     return result;
 }
 

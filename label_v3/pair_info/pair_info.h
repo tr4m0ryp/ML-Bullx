@@ -32,6 +32,14 @@ int pair_info(char *pairAddress){
     if (result == 0) {
         // Parse the response data
         pair_info_structure_filtering(&data);
+
+        
+        //free the memory
+        if (response_data.memory) {
+            free(response_data.memory);
+            response_data.memory = NULL;
+        }
+
         FILE *file = fopen("response_data_filtered.csv", "a");
         if (file) {
             fseek(file, 0, SEEK_END);
