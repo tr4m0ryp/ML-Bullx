@@ -43,12 +43,12 @@ int main (void){
         printf("Pair Address: %s\n", variable_data.pairAddress);
         printf("Creator: %s\n", variable_data.creator);
         
-        dev_token(variable_data.creator);
+        //dev_token(variable_data.creator);
         //holder_data(variable_data.pairAddress);
-        last_transaction(variable_data.pairAddress);
-        pair_info(variable_data.pairAddress);
-        token_analysis(variable_data.creator, variable_data.tokenTicker);
-        token_info_pair(variable_data.pairAddress);
+        //last_transaction(variable_data.pairAddress);
+        //pair_info(variable_data.pairAddress);
+        //token_analysis(variable_data.creator, variable_data.tokenTicker);
+        //token_info_pair(variable_data.pairAddress);
     }
 
     return 0;

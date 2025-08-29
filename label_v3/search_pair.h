@@ -1,12 +1,8 @@
-#ifndef SEARCH_PAIR_H
-#define SEARCH_PAIR_H
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include "api_request.h"
-
 
 typedef struct {
     char tokenTicker[256];
@@ -14,104 +10,97 @@ typedef struct {
     char creator[256];
 } SearchPairData;
 
-
-typedef struct{
-    char tokenTicker[256];
-    char pairAddress[256];
-    char tokenAddress[256];
-    int tokenDecimals;
-    int supply;
-    int liquiditySol;
-    int liquidityToken;
-    int marketCapSol;
-    int bondingCurvePercent;
-    int volumeSol;
-    bool has_website;
-    bool has_twitter;
-    bool has_telegram;
-    bool has_extra;
-    bool has_dexPaid;
-}SearchPairTokenData;
-
-// Function declarations
-int search_token_Data(SearchPairData *data);
-
-//main function
-int search_pair(char *mint_adress, SearchPairData *data){
-    char url[512];
-    snprintf(url, sizeof(url), "https://api3.axiom.trade/search-v3?searchQuery=%s&isOg=false&isPumpSearch=false&isBonkSearch=false&isBagsSearch=false&onlyBonded=false", mint_adress);
-    api_request(url);
-    search_token_Data(data);
-    return 0;
-}
-
-int search_token_Data(SearchPairData *data){
+int search_token_Data(SearchPairData *data) {
+    // Open the file and check for errors
     FILE *file = fopen("response_data.txt", "r");
-    if (file == NULL) {
-        fprintf(stderr, "Error opening file.\n");
+    if (!file) {
+        fprintf(stderr, "Error: Could not open response_data.txt\n");
         return -1;
-    } 
+    }
+
+    // Get file size
     fseek(file, 0, SEEK_END);
     long file_size = ftell(file);
+    if (file_size <= 0) {
+        fprintf(stderr, "Error: File is empty or seek failed\n");
+        fclose(file);
+        return -1;
+    }
     fseek(file, 0, SEEK_SET);
 
+    // Allocate memory for file content
     char *content = malloc(file_size + 1);
-    if (content == NULL) {
-        fprintf(stderr, "Memory allocation failed.\n");
+    if (!content) {
+        fprintf(stderr, "Error: Memory allocation failed\n");
         fclose(file);
         return -1;
     }
 
-    fread(content, 1, file_size, file);
-    content[file_size] = '\0';
-
+    // Read file content
+    size_t read_size = fread(content, 1, file_size, file);
+    content[read_size] = '\0';
     fclose(file);
-    char *tokenTicker = strstr(content, "\"tokenTicker\":");
-    char *pairAdress = strstr(content, "\"pairAddress\":");
-    char *creator = strstr(content, "\"creator\":");
-    if (tokenTicker && pairAdress && creator) {
-        tokenTicker += strlen("\"tokenTicker\":");
-        pairAdress += strlen("\"pairAddress\":");
-        creator += strlen("\"creator\":");
-        
-        // Skip whitespace and opening quote
-        while (*tokenTicker == ' ' || *tokenTicker == '\t') tokenTicker++;
-        if (*tokenTicker == '"') tokenTicker++;
-        while (*pairAdress == ' ' || *pairAdress == '\t') pairAdress++;
-        if (*pairAdress == '"') pairAdress++;
-        while (*creator == ' ' || *creator == '\t') creator++;
-        if (*creator == '"') creator++;
-        
-        // Find the closing quote or comma
-        char *end_tokenTicker = strchr(tokenTicker, '"');
-        if (!end_tokenTicker) end_tokenTicker = strchr(tokenTicker, ',');
-        char *end_pairAdress = strchr(pairAdress, '"');
-        if (!end_pairAdress) end_pairAdress = strchr(pairAdress, ',');
-        char *end_creator = strchr(creator, '"');
-        if (!end_creator) end_creator = strchr(creator, ',');
-        
-        if (end_tokenTicker && end_pairAdress && end_creator) {
-            *end_tokenTicker = '\0';
-            *end_pairAdress = '\0';
-            *end_creator = '\0';
-            
-            //saving data to SearchPairData struct
-            strncpy(data->tokenTicker, tokenTicker, sizeof(data->tokenTicker) - 1);
-            strncpy(data->pairAddress, pairAdress, sizeof(data->pairAddress) - 1);
-            strncpy(data->creator, creator, sizeof(data->creator) - 1);
-            
-            // Ensure null termination
-            data->tokenTicker[sizeof(data->tokenTicker) - 1] = '\0';
-            data->pairAddress[sizeof(data->pairAddress) - 1] = '\0';
-            data->creator[sizeof(data->creator) - 1] = '\0';
-        } else {
-            fprintf(stderr, "Error parsing JSON content.\n");
-            free(content);
-            return -1;
+
+    if (read_size != file_size) {
+        fprintf(stderr, "Error: Failed to read entire file\n");
+        free(content);
+        return -1;
+    }
+
+    // Initialize output structure
+    memset(data->tokenTicker, 0, sizeof(data->tokenTicker));
+    memset(data->pairAddress, 0, sizeof(data->pairAddress));
+    memset(data->creator, 0, sizeof(data->creator));
+
+    // Helper function to extract quoted string
+    char temp[256];
+    char *start, *end;
+
+    // Parse tokenTicker
+    char *tokenTicker = strstr(content, "\"tokenTicker\":\"");
+    if (tokenTicker) {
+        start = tokenTicker + strlen("\"tokenTicker\":\"");
+        end = strchr(start, '\"');
+        if (end && (end - start) < sizeof(data->tokenTicker)) {
+            strncpy(temp, start, end - start);
+            temp[end - start] = '\0';
+            strncpy(data->tokenTicker, temp, sizeof(data->tokenTicker) - 1);
         }
     }
+
+    // Parse pairAddress
+    char *pairAddress = strstr(content, "\"pairAddress\":\"");
+    if (pairAddress) {
+        start = pairAddress + strlen("\"pairAddress\":\"");
+        end = strchr(start, '\"');
+        if (end && (end - start) < sizeof(data->pairAddress)) {
+            strncpy(temp, start, end - start);
+            temp[end - start] = '\0';
+            strncpy(data->pairAddress, temp, sizeof(data->pairAddress) - 1);
+        }
+    }
+
+    // Parse creator
+    char *creator = strstr(content, "\"creator\":\"");
+    if (creator) {
+        start = creator + strlen("\"creator\":\"");
+        end = strchr(start, '\"');
+        if (end && (end - start) < sizeof(data->creator)) {
+            strncpy(temp, start, end - start);
+            temp[end - start] = '\0';
+            strncpy(data->creator, temp, sizeof(data->creator) - 1);
+        }
+    }
+
+
+    // Free memory
     free(content);
     return 0;
 }
 
-#endif // SEARCH_PAIR_H
+int search_pair(char *mint_address, SearchPairData *data) {
+    char url[512];
+    snprintf(url, sizeof(url), "https://api3.axiom.trade/search-v3?searchQuery=%s&isOg=false&isPumpSearch=false&isBonkSearch=false&isBagsSearch=false&onlyBonded=false", mint_address);
+    api_request(url); // Assume this writes to response_data.txt
+    return search_token_Data(data);
+}
