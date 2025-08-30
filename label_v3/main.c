@@ -37,7 +37,7 @@ int main (void){
     }
 
     fclose(file);
-    for(int i = 1; i < 10; i++){
+    for(int i = 1; i < 1000; i++){
         search_pair(mint_add[i], &variable_data);
         printf("Token Ticker: %s\n", variable_data.tokenTicker);
         printf("Pair Address: %s\n", variable_data.pairAddress);
@@ -45,10 +45,10 @@ int main (void){
         
         //dev_token(variable_data.creator);
         //holder_data(variable_data.pairAddress);
-        //last_transaction(variable_data.pairAddress);
-        //pair_info(variable_data.pairAddress);
+        last_transaction(variable_data.pairAddress);
+        pair_info(variable_data.pairAddress);
         //token_analysis(variable_data.creator, variable_data.tokenTicker);
-        //token_info_pair(variable_data.pairAddress);
+        token_info_pair(variable_data.pairAddress);
     }
 
     return 0;

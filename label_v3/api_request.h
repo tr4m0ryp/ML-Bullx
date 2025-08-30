@@ -73,7 +73,7 @@ int api_request(char *pairAdress){
         if(file) {
             fprintf(file, "%s \n", response_data.memory);
             fclose(file);
-            printf("Response data: %s\n", response_data.memory);
+            //printf("Response data: %s\n", response_data.memory);
             //printf("Response data saved to response_data.txt\n");
         } else {
             fprintf(stderr, "Failed to create response data file\n");
