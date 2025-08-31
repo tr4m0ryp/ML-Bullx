@@ -10,6 +10,64 @@ typedef struct {
     char creator[256];
 } SearchPairData;
 
+//prototyping
+int search_token_Data(SearchPairData *data);
+int search_creator_backup(SearchPairData *data);
+
+int search_pair(char *mint_address, SearchPairData *data) {
+    char url[512];
+    snprintf(url, sizeof(url), "https://api3.axiom.trade/search-v3?searchQuery=%s&isOg=false&isPumpSearch=false&isBonkSearch=false&isBagsSearch=false&onlyBonded=false", mint_address);
+    api_request(url); // Assume this writes to response_data.txt
+    
+    
+    search_token_Data(data);
+    if(data->creator[0] == '\0') {
+        printf("Creator address not found, attempting backup search...\n");
+        search_creator_backup(data);
+        printf("Backup creator address found: %s\n", data->creator);
+        return 0;
+    }
+    return 0;
+}
+
+
+int search_creator_backup(SearchPairData *data){
+    char url[512];
+    snprintf(url, sizeof(url), "https://api9.axiom.trade/pair-info?pairAddress=%s", data->pairAddress);
+
+    //filtering creator adress:
+    api_request(url);
+
+    FILE *file = fopen("response_data.txt", "r");
+
+    fseek(file, 0 , SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char *content = malloc(file_size + 1);
+    if (!content) {
+        fprintf(stderr, "Error: Memory allocation failed\n");
+        fclose(file);
+        return -1;
+    }
+
+    fread(content, 1, file_size, file);
+    content[file_size] = '\0';
+
+    char *creator = strstr(content, "\"deployerAddress\":\"");
+    if (creator) {
+        char *end = strchr(creator + 23, '\"');
+        if (end) {
+            strncpy(data->creator, creator + 18, end - (creator + 18));
+            data->creator[end - (creator + 18)] = '\0';
+        }
+    }
+
+    fclose(file);
+    return 0;
+}
+
+
 int search_token_Data(SearchPairData *data) {
     // Open the file and check for errors
     FILE *file = fopen("response_data.txt", "r");
@@ -98,9 +156,4 @@ int search_token_Data(SearchPairData *data) {
     return 0;
 }
 
-int search_pair(char *mint_address, SearchPairData *data) {
-    char url[512];
-    snprintf(url, sizeof(url), "https://api3.axiom.trade/search-v3?searchQuery=%s&isOg=false&isPumpSearch=false&isBonkSearch=false&isBagsSearch=false&onlyBonded=false", mint_address);
-    api_request(url); // Assume this writes to response_data.txt
-    return search_token_Data(data);
-}
+
