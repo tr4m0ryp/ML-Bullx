@@ -22,9 +22,9 @@ int search_pair(char *mint_address, SearchPairData *data) {
     
     search_token_Data(data);
     if(data->creator[0] == '\0') {
-        printf("Creator address not found, attempting backup search...\n");
+        //printf("Creator address not found, attempting backup search...\n");
         search_creator_backup(data);
-        printf("Backup creator address found: %s\n", data->creator);
+        //printf("Backup creator address found: %s\n", data->creator);
         return 0;
     }
     return 0;
@@ -56,10 +56,10 @@ int search_creator_backup(SearchPairData *data){
 
     char *creator = strstr(content, "\"deployerAddress\":\"");
     if (creator) {
-        char *end = strchr(creator + 23, '\"');
+        char *end = strchr(creator + 19, '\"');
         if (end) {
-            strncpy(data->creator, creator + 18, end - (creator + 18));
-            data->creator[end - (creator + 18)] = '\0';
+            strncpy(data->creator, creator + 19, end - (creator + 19));
+            data->creator[end - (creator + 19)] = '\0';
         }
     }
 
