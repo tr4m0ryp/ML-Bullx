@@ -116,7 +116,7 @@ int pair_info_structure_filtering(PairInfoData *data){
     }
 
     //has_freezeAuthority
-    char *has_freezeAuthority = strstr(json_data, "\"hasFreezeAuthority\"");
+    char *has_freezeAuthority = strstr(json_data, "\"freezeAuthority\"");
     if (has_freezeAuthority) {
         char *start = strchr(has_freezeAuthority, ':');
         if (start) {
@@ -139,6 +139,9 @@ int pair_info_structure_filtering(PairInfoData *data){
         }
     }
 
+
+
+    //implementing Socials & DexPaid
     return 0;
 }
 #endif // PAIR_INFO_H

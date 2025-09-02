@@ -122,6 +122,7 @@ int last_transaction_structure_filtering(LastTransactionData *data){
     }
     
     //priceSol - handle scientific notation
+    //Should not be implemented
     char *priceSol = strstr(json_data, "\"priceSol\"");
     if (priceSol) {
         char *start = strchr(priceSol, ':');
@@ -131,6 +132,7 @@ int last_transaction_structure_filtering(LastTransactionData *data){
     }
 
     //priceUsd
+    //SHould also not be implemented
     char *priceUsd = strstr(json_data, "\"priceUsd\"");
     if (priceUsd) {
         char *start = strchr(priceUsd, ':');
