@@ -8,13 +8,13 @@
 
 typedef struct{
     char type[256];
-    float liquiditySol;
+    long liquiditySol;
     long liquidityToken;  // Changed to long for large numbers
-    float priceSol;
-    float priceUsd;
-    float tokenAmount;
-    float totalSol;
-    float totalUsd;
+    long priceSol;
+    long priceUsd;
+    long tokenAmount;
+    long totalSol;
+    long totalUsd;
     int innerIndex;
     int outerIndex;
 } LastTransactionData;
@@ -55,13 +55,13 @@ int last_transaction(char *pairAddress){
         
         FILE *file = fopen("response_data_filtered.csv", "a");
         fseek(file, 0, SEEK_END);
-        fprintf(file, "%s, %f, %ld, %f, %f, %f, %f, %f, %d, %d, ",
+        fprintf(file, "%s, %ld, %ld, %ld, %ld, %ld, %ld, %ld, %d, %d, ",
                 data.type, data.liquiditySol, data.liquidityToken,
                 data.priceSol, data.priceUsd, data.tokenAmount,
                 data.totalSol, data.totalUsd, data.innerIndex,
                 data.outerIndex);
         fclose(file);
-        printf("Last transaction data: %s, %f, %ld, %f, %f, %f, %f, %f, %d, %d\n",
+        printf("Last transaction data: %s, %ld, %ld, %ld, %ld, %ld, %ld, %ld, %d, %d\n",
                data.type, data.liquiditySol, data.liquidityToken,
                data.priceSol, data.priceUsd, data.tokenAmount,
                data.totalSol, data.totalUsd, data.innerIndex,
@@ -108,7 +108,7 @@ int last_transaction_structure_filtering(LastTransactionData *data){
     if (liquiditySol) {
         char *start = strchr(liquiditySol, ':');
         if (start) {
-            sscanf(start, ":%f", &data->liquiditySol);
+            sscanf(start, ":%ld", &data->liquiditySol);
         }
     }
 
@@ -126,7 +126,7 @@ int last_transaction_structure_filtering(LastTransactionData *data){
     if (priceSol) {
         char *start = strchr(priceSol, ':');
         if (start) {
-            sscanf(start, ":%f", &data->priceSol);
+            sscanf(start, ":%ld", &data->priceSol);
         }
     }
 
@@ -135,7 +135,7 @@ int last_transaction_structure_filtering(LastTransactionData *data){
     if (priceUsd) {
         char *start = strchr(priceUsd, ':');
         if (start) {
-            sscanf(start, ":%f", &data->priceUsd);
+            sscanf(start, ":%ld", &data->priceUsd);
         }
     }
 
@@ -144,7 +144,7 @@ int last_transaction_structure_filtering(LastTransactionData *data){
     if (tokenAmount) {
         char *start = strchr(tokenAmount, ':');
         if (start) {
-            sscanf(start, ":%f", &data->tokenAmount);
+            sscanf(start, ":%ld", &data->tokenAmount);
         }
     }
 
@@ -153,7 +153,7 @@ int last_transaction_structure_filtering(LastTransactionData *data){
     if (totalSol) {
         char *start = strchr(totalSol, ':');
         if (start) {
-            sscanf(start, ":%f", &data->totalSol);
+            sscanf(start, ":%ld", &data->totalSol);
         }
     }
 
@@ -162,7 +162,7 @@ int last_transaction_structure_filtering(LastTransactionData *data){
     if (totalUsd) {
         char *start = strchr(totalUsd, ':');
         if (start) {
-            sscanf(start, ":%f", &data->totalUsd);
+            sscanf(start, ":%ld", &data->totalUsd);
         }
     }
 

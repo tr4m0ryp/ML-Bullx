@@ -9,8 +9,8 @@ typedef struct{
     int initialLiquiditySol;
     int initialLiquidityToken;
     int supply;
-    float top10Holders;
-    float lpBurned;
+    long top10Holders;
+    long lpBurned;
     bool has_freezeAuthority;
     int slot;
 } PairInfoData;
@@ -43,12 +43,12 @@ int pair_info(char *pairAddress){
         FILE *file = fopen("response_data_filtered.csv", "a");
         if (file) {
             fseek(file, 0, SEEK_END);
-            fprintf(file, "%d, %d, %d, %f, %f, %d, %d, ",
+            fprintf(file, "%d, %d, %d, %ld, %ld, %d, %d, ",
                     data.initialLiquiditySol, data.initialLiquidityToken,
                     data.supply, data.top10Holders, data.lpBurned,
                     data.has_freezeAuthority, data.slot);
             fclose(file);
-            printf("Pair info data: %d, %d, %d, %f, %f, %d, %d\n",
+            printf("Pair info data: %d, %d, %d, %ld, %ld, %d, %d\n",
                    data.initialLiquiditySol, data.initialLiquidityToken,
                    data.supply, data.top10Holders, data.lpBurned,
                    data.has_freezeAuthority, data.slot);
@@ -102,7 +102,7 @@ int pair_info_structure_filtering(PairInfoData *data){
     if (top10Holders) {
         char *start = strchr(top10Holders, ':');
         if (start) {
-            sscanf(start, ":%f", &data->top10Holders);
+            sscanf(start, ":%ld", &data->top10Holders);
         }
     }
 
@@ -111,7 +111,7 @@ int pair_info_structure_filtering(PairInfoData *data){
     if (lpBurned) {
         char *start = strchr(lpBurned, ':');
         if (start) {
-            sscanf(start, ":%f", &data->lpBurned);
+            sscanf(start, ":%ld", &data->lpBurned);
         }
     }
 
