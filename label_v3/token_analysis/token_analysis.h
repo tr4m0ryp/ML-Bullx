@@ -5,13 +5,13 @@
 #include "../api_request.h"
 
 typedef struct{
-    long double creatorRiskLevel;
+    double creatorRiskLevel;
     int creatorRugCount;
     int creatorTokenCount;
     int amount_topMarketCapCoins;
     int amount_topOgCoins;
-    long double average_marketCap_TMCC;
-    long double average_marketCap_TOC;
+    double average_marketCap_TMCC;
+    double average_marketCap_TOC;
 } TokenAnalysisData; 
 
 
@@ -42,7 +42,7 @@ int token_analysis(char *devAddress, char *tokenTicker) {
     FILE *file = fopen("response_data_filtered.csv", "a");
     if(file){
         fseek(file, 0, SEEK_END);
-        fprintf(file, "%.0Lf, %d, %d, %d, %d, %.0Lf, %.0Lf, ",
+        fprintf(file, "%.0lf, %d, %d, %d, %d, %.0lf, %.0lf, ",
                 data.creatorRiskLevel, data.creatorRugCount,
                 data.creatorTokenCount, data.amount_topMarketCapCoins,
                 data.amount_topOgCoins, data.average_marketCap_TMCC,
@@ -67,7 +67,7 @@ int token_analysis_structure_filtering(TokenAnalysisData *data){
     if (creatorRiskLevel) {
         char *start = strchr(creatorRiskLevel, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->creatorRiskLevel);
+            sscanf(start, ":%lf", &data->creatorRiskLevel);
         }
     }
 
@@ -116,7 +116,7 @@ int token_analysis_structure_filtering(TokenAnalysisData *data){
     if (average_marketCap_TMCC) {
         char *start = strchr(average_marketCap_TMCC, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->average_marketCap_TMCC);
+            sscanf(start, ":%lf", &data->average_marketCap_TMCC);
         }
     }
 
@@ -126,7 +126,7 @@ int token_analysis_structure_filtering(TokenAnalysisData *data){
     if (average_marketCap_TOC) {
         char *start = strchr(average_marketCap_TOC, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->average_marketCap_TOC);
+            sscanf(start, ":%lf", &data->average_marketCap_TOC);
         }
     }
      */

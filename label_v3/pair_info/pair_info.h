@@ -7,13 +7,13 @@
 #include <string.h>
 
 typedef struct{
-    long double initialLiquiditySol;
-    long double initialLiquidityToken;
-    long double supply;
-    long double top10Holders;
-    long double lpBurned;
+    double initialLiquiditySol;
+    double initialLiquidityToken;
+    double supply;
+    double top10Holders;
+    double lpBurned;
     bool has_freezeAuthority;
-    long double slot;
+    double slot;
     bool DexPaid;
     bool Socials;
     bool is_updated;
@@ -47,7 +47,7 @@ int pair_info(char *pairAddress){
         FILE *file = fopen("response_data_filtered.csv", "a");
         if (file) {
             fseek(file, 0, SEEK_END);
-            fprintf(file, "%.0Lf, %.0Lf, %.0Lf, %.0Lf, %.0Lf, %d, %.0Lf, %d, %d, %d,",
+            fprintf(file, "%.0lf, %.0lf, %.0lf, %.0lf, %.0lf, %d, %.0lf, %d, %d, %d,",
                     data.initialLiquiditySol, data.initialLiquidityToken,
                     data.supply, data.top10Holders, data.lpBurned,
                     data.has_freezeAuthority, data.slot, data.DexPaid,
@@ -76,7 +76,7 @@ int pair_info_structure_filtering(PairInfoData *data){
     if (initialLiquiditySol) {
         char *start = strchr(initialLiquiditySol, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->initialLiquiditySol);
+            sscanf(start, ":%lf", &data->initialLiquiditySol);
         }
     }
 
@@ -85,7 +85,7 @@ int pair_info_structure_filtering(PairInfoData *data){
     if (initialLiquidityToken) {
         char *start = strchr(initialLiquidityToken, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->initialLiquidityToken);
+            sscanf(start, ":%lf", &data->initialLiquidityToken);
         }
     }
 
@@ -94,7 +94,7 @@ int pair_info_structure_filtering(PairInfoData *data){
     if (supply) {
         char *start = strchr(supply, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->supply);
+            sscanf(start, ":%lf", &data->supply);
         }
     }
 
@@ -103,7 +103,7 @@ int pair_info_structure_filtering(PairInfoData *data){
     if (top10Holders) {
         char *start = strchr(top10Holders, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->top10Holders);
+            sscanf(start, ":%lf", &data->top10Holders);
         }
     }
 
@@ -112,7 +112,7 @@ int pair_info_structure_filtering(PairInfoData *data){
     if (lpBurned) {
         char *start = strchr(lpBurned, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->lpBurned);
+            sscanf(start, ":%lf", &data->lpBurned);
         }
     }
 
@@ -136,7 +136,7 @@ int pair_info_structure_filtering(PairInfoData *data){
     if (slot) {
         char *start = strchr(slot, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->slot);
+            sscanf(start, ":%lf", &data->slot);
         }
     }
 

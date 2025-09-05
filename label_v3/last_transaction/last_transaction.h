@@ -3,16 +3,17 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "../api_request.h"
 
 
 typedef struct{
     char type[256];
-    long double liquiditySol;
-    long double liquidityToken; 
+    double liquiditySol;
+    double liquidityToken; 
     long double priceSol;
     long double priceUsd;
-    long double tokenAmount;
+    double tokenAmount;
     long double totalSol;
     long double totalUsd;
     int innerIndex;
@@ -26,8 +27,17 @@ int last_transaction(char *pairAddress){
     LastTransactionData data;
     char url[256];
     
-    
+    // Initialize all values to known defaults
     data.outerIndex = -1;  // Use -1 to indicate null
+    data.innerIndex = -1;  // Use -1 to indicate null
+    data.priceSol = 0.0L;
+    data.priceUsd = 0.0L;
+    data.totalSol = 0.0L;
+    data.totalUsd = 0.0L;
+    data.liquiditySol = 0.0;
+    data.liquidityToken = 0.0;
+    data.tokenAmount = 0.0;
+    strcpy(data.type, "");
     
     // Construct the URL using snprintf (safer than sprintf)
     snprintf(url, sizeof(url), "https://api9.axiom.trade/last-transaction?pairAddress=%s", pairAddress);
@@ -46,17 +56,18 @@ int last_transaction(char *pairAddress){
         
         FILE *file = fopen("response_data_filtered.csv", "a");
         fseek(file, 0, SEEK_END);
-        fprintf(file, "%s, %.0Lf, %.0Lf, %.0Lf, %.0Lf, %.0Lf, %.0Lf, %.0Lf, %d, %d, ",
+        fprintf(file, "%s, %lf, %lf, %Le, %Le, %lf, %Le, %Le, %d, %d, ",
                 data.type, data.liquiditySol, data.liquidityToken,
                 data.priceSol, data.priceUsd, data.tokenAmount,
                 data.totalSol, data.totalUsd, data.innerIndex,
                 data.outerIndex);
         fclose(file);
-        printf("Last transaction data: %s, %.0Lf, %.0Lf, %.0Lf, %.0Lf, %.0Lf, %.0Lf, %.0Lf, %d, %d\n",
+        /*printf("Last transaction data: %s, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %d, %d\n",
                data.type, data.liquiditySol, data.liquidityToken,
                data.priceSol, data.priceUsd, data.tokenAmount,
                data.totalSol, data.totalUsd, data.innerIndex,
                data.outerIndex);
+        */
     }
 
 
@@ -100,16 +111,16 @@ int last_transaction_structure_filtering(LastTransactionData *data){
     if (liquiditySol) {
         char *start = strchr(liquiditySol, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->liquiditySol);
+            sscanf(start, ":%lf", &data->liquiditySol);
         }
     }
 
-    //liquidityToken - using long double format
+    //liquidityToken - using double format
     char *liquidityToken = strstr(json_data, "\"liquidityToken\"");
     if (liquidityToken) {
         char *start = strchr(liquidityToken, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->liquidityToken);
+            sscanf(start, ":%lf", &data->liquidityToken);
         }
     }
     
@@ -118,7 +129,11 @@ int last_transaction_structure_filtering(LastTransactionData *data){
     if (priceSol) {
         char *start = strchr(priceSol, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->priceSol);
+            start++; // Skip the ':'
+            while (*start == ' ' || *start == '\t') start++; // Skip whitespace
+            
+            char *endptr;
+            data->priceSol = strtold(start, &endptr);
         }
     }
 
@@ -127,7 +142,11 @@ int last_transaction_structure_filtering(LastTransactionData *data){
     if (priceUsd) {
         char *start = strchr(priceUsd, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->priceUsd);
+            start++; // Skip the ':'
+            while (*start == ' ' || *start == '\t') start++; // Skip whitespace
+            
+            char *endptr;
+            data->priceUsd = strtold(start, &endptr);
         }
     }
 
@@ -136,7 +155,7 @@ int last_transaction_structure_filtering(LastTransactionData *data){
     if (tokenAmount) {
         char *start = strchr(tokenAmount, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->tokenAmount);
+            sscanf(start, ":%lf", &data->tokenAmount);
         }
     }
 
@@ -145,7 +164,10 @@ int last_transaction_structure_filtering(LastTransactionData *data){
     if (totalSol) {
         char *start = strchr(totalSol, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->totalSol);
+            start++; // Skip the ':'
+            while (*start == ' ' || *start == '\t') start++; // Skip whitespace
+            char *endptr;
+            data->totalSol = strtold(start, &endptr);
         }
     }
 
@@ -154,7 +176,10 @@ int last_transaction_structure_filtering(LastTransactionData *data){
     if (totalUsd) {
         char *start = strchr(totalUsd, ':');
         if (start) {
-            sscanf(start, ":%Lf", &data->totalUsd);
+            start++; // Skip the ':'
+            while (*start == ' ' || *start == '\t') start++; // Skip whitespace
+            char *endptr;
+            data->totalUsd = strtold(start, &endptr);
         }
     }
 

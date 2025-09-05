@@ -63,7 +63,6 @@ int main (void){
         }
     }
 
-    fclose(file);
     return 0;
 
 }
