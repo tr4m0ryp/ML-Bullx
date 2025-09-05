@@ -10,7 +10,7 @@ typedef struct{
     double initialLiquiditySol;
     double initialLiquidityToken;
     double supply;
-    double top10Holders;
+    long double top10Holders;
     double lpBurned;
     bool has_freezeAuthority;
     double slot;
@@ -47,7 +47,7 @@ int pair_info(char *pairAddress){
         FILE *file = fopen("response_data_filtered.csv", "a");
         if (file) {
             fseek(file, 0, SEEK_END);
-            fprintf(file, "%.0lf, %.0lf, %.0lf, %.0lf, %.0lf, %d, %.0lf, %d, %d, %d,",
+            fprintf(file, "%lf, %lf, %lf, %Le, %lf, %d, %lf, %d, %d, %d,",
                     data.initialLiquiditySol, data.initialLiquidityToken,
                     data.supply, data.top10Holders, data.lpBurned,
                     data.has_freezeAuthority, data.slot, data.DexPaid,
@@ -103,7 +103,7 @@ int pair_info_structure_filtering(PairInfoData *data){
     if (top10Holders) {
         char *start = strchr(top10Holders, ':');
         if (start) {
-            sscanf(start, ":%lf", &data->top10Holders);
+            sscanf(start, ":%Le", &data->top10Holders);
         }
     }
 
@@ -123,10 +123,10 @@ int pair_info_structure_filtering(PairInfoData *data){
         if (start) {
             start++;
             while (*start == ' ') start++;  // Skip whitespace
-            if (strncmp(start, "true", 4) == 0) {
-                data->has_freezeAuthority = true;
-            } else if (strncmp(start, "false", 5) == 0) {
+            if (strncmp(start, "null", 4) == 0) {
                 data->has_freezeAuthority = false;
+            } else {
+                data->has_freezeAuthority = true;
             }
         }
     }

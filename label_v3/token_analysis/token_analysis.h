@@ -10,8 +10,8 @@ typedef struct{
     int creatorTokenCount;
     int amount_topMarketCapCoins;
     int amount_topOgCoins;
-    double average_marketCap_TMCC;
-    double average_marketCap_TOC;
+    //double average_marketCap_TMCC;
+    //double average_marketCap_TOC;
 } TokenAnalysisData; 
 
 
@@ -42,11 +42,10 @@ int token_analysis(char *devAddress, char *tokenTicker) {
     FILE *file = fopen("response_data_filtered.csv", "a");
     if(file){
         fseek(file, 0, SEEK_END);
-        fprintf(file, "%.0lf, %d, %d, %d, %d, %.0lf, %.0lf, ",
+        fprintf(file, "%lf, %d, %d, %d, %d, ",
                 data.creatorRiskLevel, data.creatorRugCount,
                 data.creatorTokenCount, data.amount_topMarketCapCoins,
-                data.amount_topOgCoins, data.average_marketCap_TMCC,
-                data.average_marketCap_TOC);
+                data.amount_topOgCoins);
     }
    }
     return 0;

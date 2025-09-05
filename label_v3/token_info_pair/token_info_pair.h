@@ -6,14 +6,14 @@
 #include "../api_request.h"
 
 typedef struct{
-    double top10HoldersPercent;
-    double devHoldsPercent;
-    double snipersHoldPercent;
-    double insidersHoldPercent;
-    double bundlersHoldPercent;
+    long double top10HoldersPercent;
+    long double devHoldsPercent;
+    long double snipersHoldPercent;
+    long double insidersHoldPercent;
+    long double bundlersHoldPercent;
     int numHolders;
     int numBotUsers;
-    double totalPairFeesPaid;
+    long double totalPairFeesPaid;
 } TokenInfoPairData;
 
 
@@ -41,12 +41,12 @@ int token_info_pair(char *pairAddress) {
         FILE *file = fopen("response_data_filtered.csv", "a");
         if(file){
             fseek(file, 0, SEEK_END);
-            fprintf(file, "%.6f, %.6f, %.6f, %.6f, %.6f, %d, %d, %.6f\n",
+            fprintf(file, "%Le, %Le, %Le, %Le, %Le, %d, %d, %Le\n",
                     data.top10HoldersPercent, data.devHoldsPercent,
                     data.snipersHoldPercent, data.insidersHoldPercent,
                     data.bundlersHoldPercent, data.numHolders,
                     data.numBotUsers, data.totalPairFeesPaid);
-            printf("%.6f, %.6f, %.6f, %.6f, %.6f, %d, %d, %.6f\n",
+            printf("%Le, %Le, %Le, %Le, %Le, %d, %d, %Le\n",
                    data.top10HoldersPercent, data.devHoldsPercent,
                    data.snipersHoldPercent, data.insidersHoldPercent,
                    data.bundlersHoldPercent, data.numHolders,
@@ -74,7 +74,7 @@ int token_info_pair_structure_filtering(TokenInfoPairData *data){
     if (top10HoldersPercent) {
         char *start = strchr(top10HoldersPercent, ':');
         if (start) {
-            sscanf(start, ":%lf", &data->top10HoldersPercent);
+            sscanf(start, ":%Le", &data->top10HoldersPercent);
         }
     }
 
@@ -83,7 +83,7 @@ int token_info_pair_structure_filtering(TokenInfoPairData *data){
     if (devHoldsPercent) {
         char *start = strchr(devHoldsPercent, ':');
         if (start) {
-            sscanf(start, ":%lf", &data->devHoldsPercent);
+            sscanf(start, ":%Le", &data->devHoldsPercent);
         }
     }
 
@@ -92,7 +92,7 @@ int token_info_pair_structure_filtering(TokenInfoPairData *data){
     if (snipersHoldPercent) {
         char *start = strchr(snipersHoldPercent, ':');
         if (start) {
-            sscanf(start, ":%lf", &data->snipersHoldPercent);
+            sscanf(start, ":%Le", &data->snipersHoldPercent);
         }
     }
 
@@ -101,7 +101,7 @@ int token_info_pair_structure_filtering(TokenInfoPairData *data){
     if (insidersHoldPercent) {
         char *start = strchr(insidersHoldPercent, ':');
         if (start) {
-            sscanf(start, ":%lf", &data->insidersHoldPercent);
+            sscanf(start, ":%Le", &data->insidersHoldPercent);
         }
     }
 
@@ -110,7 +110,7 @@ int token_info_pair_structure_filtering(TokenInfoPairData *data){
     if (bundlersHoldPercent) {
         char *start = strchr(bundlersHoldPercent, ':');
         if (start) {
-            sscanf(start, ":%lf", &data->bundlersHoldPercent);
+            sscanf(start, ":%Le", &data->bundlersHoldPercent);
         }
     }
 
@@ -137,7 +137,7 @@ int token_info_pair_structure_filtering(TokenInfoPairData *data){
     if (totalPairFeesPaid) {
         char *start = strchr(totalPairFeesPaid, ':');
         if (start) {
-            sscanf(start, ":%lf", &data->totalPairFeesPaid);
+            sscanf(start, ":%Le", &data->totalPairFeesPaid);
         }
     }
 
