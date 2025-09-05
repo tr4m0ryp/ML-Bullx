@@ -76,7 +76,7 @@ int pair_info_structure_filtering(PairInfoData *data){
     if (initialLiquiditySol) {
         char *start = strchr(initialLiquiditySol, ':');
         if (start) {
-            sscanf(start, ":%d", &data->initialLiquiditySol);
+            sscanf(start, ":%ld", &data->initialLiquiditySol);
         }
     }
 
@@ -85,7 +85,7 @@ int pair_info_structure_filtering(PairInfoData *data){
     if (initialLiquidityToken) {
         char *start = strchr(initialLiquidityToken, ':');
         if (start) {
-            sscanf(start, ":%d", &data->initialLiquidityToken);
+            sscanf(start, ":%ld", &data->initialLiquidityToken);
         }
     }
 
@@ -94,7 +94,7 @@ int pair_info_structure_filtering(PairInfoData *data){
     if (supply) {
         char *start = strchr(supply, ':');
         if (start) {
-            sscanf(start, ":%d", &data->supply);
+            sscanf(start, ":%ld", &data->supply);
         }
     }
 
@@ -136,7 +136,7 @@ int pair_info_structure_filtering(PairInfoData *data){
     if (slot) {
         char *start = strchr(slot, ':');
         if (start) {
-            sscanf(start, ":%d", &data->slot);
+            sscanf(start, ":%ld", &data->slot);
         }
     }
 

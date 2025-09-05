@@ -1,1 +1,1 @@
-{"top10HoldersPercent":1.3473098723649097,"devHoldsPercent":0,"snipersHoldPercent":0,"insidersHoldPercent":1.6436445161491895,"bundlersHoldPercent":0,"dexPaid":false,"numHolders":53,"numBotUsers":8,"totalPairFeesPaid":0.0000051} 
+{"creatorRiskLevel":"N/A","creatorRugCount":0,"creatorTokenCount":0,"topMarketCapCoins":[],"topOgCoins":[]} 
