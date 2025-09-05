@@ -7,13 +7,13 @@
 #include <string.h>
 
 typedef struct{
-    int initialLiquiditySol;
-    int initialLiquidityToken;
-    int supply;
+    long initialLiquiditySol;
+    long initialLiquidityToken;
+    long supply;
     long top10Holders;
     long lpBurned;
     bool has_freezeAuthority;
-    int slot;
+    long slot;
     bool DexPaid;
     bool Socials;
     bool is_updated;
@@ -47,15 +47,12 @@ int pair_info(char *pairAddress){
         FILE *file = fopen("response_data_filtered.csv", "a");
         if (file) {
             fseek(file, 0, SEEK_END);
-            fprintf(file, "%d, %d, %d, %ld, %ld, %d, %d, ",
+            fprintf(file, "%ld, %ld, %ld, %ld, %ld, %d, %ld, %d, %d, %d\n",
                     data.initialLiquiditySol, data.initialLiquidityToken,
                     data.supply, data.top10Holders, data.lpBurned,
-                    data.has_freezeAuthority, data.slot);
+                    data.has_freezeAuthority, data.slot, data.DexPaid,
+                    data.Socials, data.is_updated);
             fclose(file);
-            printf("Pair info data: %d, %d, %d, %ld, %ld, %d, %d\n",
-                   data.initialLiquiditySol, data.initialLiquidityToken,
-                   data.supply, data.top10Holders, data.lpBurned,
-                   data.has_freezeAuthority, data.slot);
         } else {
             fprintf(stderr, "Failed to create response data file\n");
         }

@@ -107,8 +107,11 @@ int token_analysis_structure_filtering(TokenAnalysisData *data){
         }
     }
 
+    
+    
     //average_marketCap_TMCC
     //optional - will not work at all coins, could better be removed
+   /*
     char *average_marketCap_TMCC = strstr(json_data, "\"average_marketCap_TMCC\"");
     if (average_marketCap_TMCC) {
         char *start = strchr(average_marketCap_TMCC, ':');
@@ -126,7 +129,7 @@ int token_analysis_structure_filtering(TokenAnalysisData *data){
             sscanf(start, ":%ld", &data->average_marketCap_TOC);
         }
     }
-
+     */
     return 0;
 }
 

@@ -30,9 +30,9 @@ int main (void){
     if(file){
         fprintf(file, "Dev_Total_count,Dev_Total_migrated_count,Type,LiquiditySOL,"
             "LiquidityToken,priceSOL,priceUsd,tokenAmount,totalSOL,TotalUSd,InnerIndex,OuterIndex,"
-            "initialLiquiditySOL,InitialLiquidityToken,Supply,top10Holders,LpBurner,has_freezeAUthority,slot,"
-            "CreatorRiskLevel,CreatorRugcount,CreatorTokenCount,Amount_topMarketCapcoins,Amount_topOgCoins,Average_marketcap_TMCC,Average_MarketCap_TOC,"
-            "top10HoldersPercent,DevHoldsPervent,SniperHoldPercent,InsiderHoldPercent,BundlersHoldPercent,numHolders,numBotUsers,totalPairfeesPaid\n"
+            "initialLiquiditySOL,InitialLiquidityToken,Supply,top10Holders,LpBurner,has_freezeAUthority,slot,DexPaid, Socials, Is_updated,"
+            "CreatorRiskLevel,CreatorRugcount,CreatorTokenCount,Amount_topMarketCapcoins,Amount_topOgCoins," //token_analysis.h
+            "top10HoldersPercent,DevHoldsPercent,SniperHoldPercent,InsiderHoldPercent,BundlersHoldPercent,numHolders,numBotUsers,totalPairfeesPaid\n" //token_info_pair.h
         );
     }
 

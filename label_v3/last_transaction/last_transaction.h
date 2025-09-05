@@ -9,7 +9,7 @@
 typedef struct{
     char type[256];
     long liquiditySol;
-    long liquidityToken;  // Changed to long for large numbers
+    long liquidityToken; 
     long priceSol;
     long priceUsd;
     long tokenAmount;
@@ -26,16 +26,7 @@ int last_transaction(char *pairAddress){
     LastTransactionData data;
     char url[256];
     
-    // Initialize the structure with default values
-    strcpy(data.type, "unknown");
-    data.liquiditySol = 0.0;
-    data.liquidityToken = 0;
-    data.priceSol = 0.0;
-    data.priceUsd = 0.0;
-    data.tokenAmount = 0.0;
-    data.totalSol = 0.0;
-    data.totalUsd = 0.0;
-    data.innerIndex = -1;  // Use -1 to indicate null
+    
     data.outerIndex = -1;  // Use -1 to indicate null
     
     // Construct the URL using snprintf (safer than sprintf)
@@ -55,7 +46,7 @@ int last_transaction(char *pairAddress){
         
         FILE *file = fopen("response_data_filtered.csv", "a");
         fseek(file, 0, SEEK_END);
-        fprintf(file, "%s, %ld, %ld, %ld, %ld, %ld, %ld, %ld, %d, %d, ",
+        fprintf(file, "%s, %ld, %ld, %ld, %ld, %ld, %ld, %ld, %d, %d ",
                 data.type, data.liquiditySol, data.liquidityToken,
                 data.priceSol, data.priceUsd, data.tokenAmount,
                 data.totalSol, data.totalUsd, data.innerIndex,
@@ -81,10 +72,11 @@ int last_transaction_structure_filtering(LastTransactionData *data){
         return -1;
     }
 
-    printf("Parsing JSON: %.200s...\n", json_data);  // Debug: show first 200 chars
+    //printf("Parsing JSON: %.200s...\n", json_data);  // Debug: show first 200 chars
 
     // Parse type field
     char *type_field = strstr(json_data, "\"type\"");
+    
     if (type_field) {
         char *start = strstr(type_field, ":");
         if (start) {
@@ -121,8 +113,7 @@ int last_transaction_structure_filtering(LastTransactionData *data){
         }
     }
     
-    //priceSol - handle scientific notation
-    //Should not be implemented
+ 
     char *priceSol = strstr(json_data, "\"priceSol\"");
     if (priceSol) {
         char *start = strchr(priceSol, ':');
@@ -131,8 +122,7 @@ int last_transaction_structure_filtering(LastTransactionData *data){
         }
     }
 
-    //priceUsd
-    //SHould also not be implemented
+ 
     char *priceUsd = strstr(json_data, "\"priceUsd\"");
     if (priceUsd) {
         char *start = strchr(priceUsd, ':');
