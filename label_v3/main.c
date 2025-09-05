@@ -28,7 +28,7 @@ int main (void){
 
     FILE *file = fopen("response_data_filtered.csv", "w");
     if(file){
-        fprintf(file, "Dev_Total_count,Dev_Total_migrated_count,Type,LiquiditySOL,"
+        fprintf(file, "Mint_Adress, Dev_Total_count,Dev_Total_migrated_count,Type,LiquiditySOL,"
             "LiquidityToken,priceSOL,priceUsd,tokenAmount,totalSOL,TotalUSd,InnerIndex,OuterIndex,"
             "initialLiquiditySOL,InitialLiquidityToken,Supply,top10Holders,LpBurner,has_freezeAUthority,slot,DexPaid, Socials, Is_updated,"
             "CreatorRiskLevel,CreatorRugcount,CreatorTokenCount,Amount_topMarketCapcoins,Amount_topOgCoins," //token_analysis.h
@@ -37,7 +37,17 @@ int main (void){
     }
 
     fclose(file);
-    for(int i = 1; i < 1000; i++){
+
+    for(int i = 2; i < 1000; i++){
+
+        //opening the file to write the data in
+        FILE *file = fopen("response_data_filtered.csv", "a");
+        if(file){
+            fseek(file, 0, SEEK_END);
+            fprintf(file, "%s, ", mint_add[i]);
+        }
+        fclose(file);
+
         search_pair(mint_add[i], &variable_data);
         printf("Token Ticker: %s\n", variable_data.tokenTicker);
         printf("Pair Address: %s\n", variable_data.pairAddress);
@@ -53,6 +63,7 @@ int main (void){
         }
     }
 
+    fclose(file);
     return 0;
 
 }

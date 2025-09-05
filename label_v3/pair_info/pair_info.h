@@ -47,7 +47,7 @@ int pair_info(char *pairAddress){
         FILE *file = fopen("response_data_filtered.csv", "a");
         if (file) {
             fseek(file, 0, SEEK_END);
-            fprintf(file, "%ld, %ld, %ld, %ld, %ld, %d, %ld, %d, %d, %d\n",
+            fprintf(file, "%ld, %ld, %ld, %ld, %ld, %d, %ld, %d, %d, %d,",
                     data.initialLiquiditySol, data.initialLiquidityToken,
                     data.supply, data.top10Holders, data.lpBurned,
                     data.has_freezeAuthority, data.slot, data.DexPaid,

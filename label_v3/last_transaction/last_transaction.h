@@ -8,7 +8,7 @@
 
 typedef struct{
     char type[256];
-    long liquiditySol;
+    double liquiditySol;
     long liquidityToken; 
     long priceSol;
     long priceUsd;
@@ -46,7 +46,7 @@ int last_transaction(char *pairAddress){
         
         FILE *file = fopen("response_data_filtered.csv", "a");
         fseek(file, 0, SEEK_END);
-        fprintf(file, "%s, %ld, %ld, %ld, %ld, %ld, %ld, %ld, %d, %d ",
+        fprintf(file, "%s, %ld, %ld, %ld, %ld, %ld, %ld, %ld, %d, %d, ",
                 data.type, data.liquiditySol, data.liquidityToken,
                 data.priceSol, data.priceUsd, data.tokenAmount,
                 data.totalSol, data.totalUsd, data.innerIndex,
