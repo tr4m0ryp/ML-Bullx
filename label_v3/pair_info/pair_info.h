@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "../api_request.h"
+#include <string.h>
 
 typedef struct{
     int initialLiquiditySol;
@@ -13,6 +14,9 @@ typedef struct{
     long lpBurned;
     bool has_freezeAuthority;
     int slot;
+    bool DexPaid;
+    bool Socials;
+    bool is_updated;
 } PairInfoData;
 
 
@@ -139,9 +143,40 @@ int pair_info_structure_filtering(PairInfoData *data){
         }
     }
 
+    char *DexPaid = strstr(json_data, "\"DexPaid\"");
+    if (DexPaid) {
+        char *start = strchr(DexPaid, ':');
+        if (start) {
+            start++;
+            while (*start == ' ') start++;  // Skip whitespace
+            if (strncmp(start, "null", 4) == 0) {
+                data->DexPaid = false;
+            } else{
+                data->DexPaid = true;
+            }
+        }
+    }
 
 
-    //implementing Socials & DexPaid
+    char *discord = strstr(json_data, "\"discord\"");
+    char *twitter = strstr(json_data, "\"twitter\"");
+    char *telegram = strstr(json_data, "\"telegram\"");
+    char *website = strstr(json_data, "\"website\"");
+    if (discord != NULL || twitter != NULL || telegram != NULL ||website != NULL) {
+        data->Socials = true;
+    } else {
+        data->Socials = false;
+    }
+
+    char *createdAT = strstr(json_data, "\"createdAt\"");
+    char *updatedAT = strstr(json_data, "\"updatedAt\"");
+
+    if (strcmp(createdAT, updatedAT) == 0) {
+        data->is_updated = false;
+    } else {
+        data->is_updated = true;
+    }
+
     return 0;
 }
 #endif // PAIR_INFO_H
