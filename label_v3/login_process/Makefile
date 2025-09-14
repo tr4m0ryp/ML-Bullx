@@ -20,4 +20,4 @@ main: main.c wallet_nonce.h wallet_generation.h wallet_nonce.h wallet_generation
 	$(CC) $(CFLAGS) -o main main.c wallet_nonce.h wallet_generation.h signature.h $(LIBS)
 
 clean:
-	rm -f wallet_nonce verify_wallet_v2 test_tor response_data.txt response_data_filtered.txt signature main
+	rm -f wallet_nonce verify_wallet_v2 test_tor response_data.txt response_data_filtered.txt signature main wallet_generation

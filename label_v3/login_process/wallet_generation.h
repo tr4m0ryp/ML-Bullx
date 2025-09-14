@@ -23,9 +23,9 @@ Wallet wallet_generation(void){
     char* json_data = generate_wallet();
     //printf("Response: %s\n", json_data);
     Wallet wallet = filter_data(json_data);
-    printf("Address: %s\n", wallet.address);
-    printf("Private Key: %s\n", wallet.privateKey);
-    printf("Mnemonic: %s\n", wallet.mnemonic);
+    //printf("Address: %s\n", wallet.address);
+    //printf("Private Key: %s\n", wallet.privateKey);
+    //printf("Mnemonic: %s\n", wallet.mnemonic);
 
     free(json_data);
     return wallet;

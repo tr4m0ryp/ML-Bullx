@@ -3,6 +3,7 @@
 #include "wallet_nonce.h"
 #include "wallet_generation.h"
 #include "signature.h"
+#include "verify_wallet_v2.h"
 
 int main(void){
     printf("Generating new cookies\n");
@@ -11,16 +12,18 @@ int main(void){
     wallet = wallet_generation();
     char *walletAddress = wallet.address;
     char *nonce = wallet_nonce(walletAddress);
-    char *result = signature(wallet.privateKey, nonce);
-    printf("Signature result:\n%s\n", result);
+    char *signature_v1 = signature(wallet.privateKey, nonce);
+    printf("Signature result:\n%s\n", signature_v1);
+    char *response = verify_wallet(walletAddress, signature_v1, nonce);
 
 
-    //free
+
     free(wallet.address);
     free(wallet.privateKey);
     free(wallet.mnemonic);
     free(nonce);
-    free(result);
+    free(signature_v1);
+    free(response);
     return 0;
 }
 

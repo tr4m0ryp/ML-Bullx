@@ -14,7 +14,7 @@ char* wallet_nonce(char* walletAddress){
     api_request("https://api9.axiom.trade/wallet-nonce", headers, payload);
     //printf("Response Data: %s", response_data.memory);
     char *nonce = response_data.memory;
-    printf("Nonce: %s\n", nonce);
+    //printf("Nonce: %s\n", nonce);
     return nonce;
 }
 

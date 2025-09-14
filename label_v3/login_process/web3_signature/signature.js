@@ -17,19 +17,6 @@ async function signMessage_first(keypair, Nonce) {
 }
 
 
-//sign message second message
-async function SignMessage_second(keypair){
-    const message = "Hello from ML-Bullx!";
-    const messageBytes = new TextEncoder().encode(message);
-    const signature = nacl.sign.detached(messageBytes, keypair.secretKey);
-
-    return {
-        signature: Array.from(signature),
-        publicKey: keypair.publicKey.toString(),
-        message: message
-    };
-}
-
 // Import keypair from private key
 function importKeypair(privateKey) {
     let secretKey;
@@ -67,13 +54,11 @@ async function main(privateKey, nonce) {
     try {
         const keypair = importKeypair(privateKey);
         const result = await signMessage_first(keypair, nonce);
-        const result_2 = await SignMessage_second(keypair);
         
         //console log results
-        console.log('Signature_1:', result.signature.map(b => b.toString(16).padStart(2, '0')).join(''));
-        console.log('Message_1:', result.message);
-        console.log('Signature_2:', result_2.signature.map(b => b.toString(16).padStart(2, '0')).join(''));
-        console.log('Message_2:', result_2.message);
+        console.log(result.signature.map(b => b.toString(16).padStart(2, '0')).join(''));
+        //console.log('Message_1:\n', result.message);
+
         
         
         return result;
@@ -82,13 +67,9 @@ async function main(privateKey, nonce) {
     }
 }
 
-
-main('f4wGuAdxUyPXFme6B6DhcfG2vf35p3ifKr3yEjh1whChPmG4RAZ4C9uyaz6jEaAWwJFy5Fh2b9fHKn9uroQm4zF', "123456");
-
 // Export functions for use in other modules
 module.exports = {
     signMessage_first,
-    SignMessage_second,
     importKeypair,
     main
 };
