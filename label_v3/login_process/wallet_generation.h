@@ -1,3 +1,6 @@
+#ifndef _WALLET_GENERATION_H
+#define _WALLET_GENERATION_H
+
 #include <stdio.h>
 #include <curl/curl.h>
 #include <string.h>
@@ -16,7 +19,7 @@ char* generate_wallet();
 Wallet filter_data(char* json_data);
 
 //main function
-int main(void){
+Wallet wallet_generation(void){
     char* json_data = generate_wallet();
     //printf("Response: %s\n", json_data);
     Wallet wallet = filter_data(json_data);
@@ -25,10 +28,7 @@ int main(void){
     printf("Mnemonic: %s\n", wallet.mnemonic);
 
     free(json_data);
-    free(wallet.address);
-    free(wallet.privateKey);
-    free(wallet.mnemonic);
-    return 0;
+    return wallet;
 }
 
 struct WriteResult {
@@ -113,3 +113,4 @@ Wallet filter_data(char* json_data){
     return wallet;
 }
 
+#endif // _WALLET_GENERATION_H
