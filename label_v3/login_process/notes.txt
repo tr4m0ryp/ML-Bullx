@@ -1,11 +1,3 @@
-#include <stdio.h>
-
-int main(void){
-    return 0;
-}
-
-
-int signatur
 /*
 Message 1:
 By signing, you agree to Axiom's Terms of Use & Privacy Policy (axiom.trade/legal).

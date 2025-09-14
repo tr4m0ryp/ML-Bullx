@@ -84,3 +84,11 @@ async function main(privateKey, nonce) {
 
 
 main('f4wGuAdxUyPXFme6B6DhcfG2vf35p3ifKr3yEjh1whChPmG4RAZ4C9uyaz6jEaAWwJFy5Fh2b9fHKn9uroQm4zF', "123456");
+
+// Export functions for use in other modules
+module.exports = {
+    signMessage_first,
+    SignMessage_second,
+    importKeypair,
+    main
+};
