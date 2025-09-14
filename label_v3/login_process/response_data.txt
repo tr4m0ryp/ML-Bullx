@@ -1,1 +1,1 @@
-{"error":"Too many signup requests from your region today, you can still use login"} 
+{"orgId":"c057e19e-9b16-4db6-84a0-21ad213ad3c5","userId":"e8462688-ead9-49fa-8724-323714d5b30d","turnkeyUserId":"e41383b1-3716-4f15-a613-e8fa564307f6","sol":"FfXNe8WBJRRn8nWBihgTNFv4aXioE3audFJFroUusVe2","evm":"0x69a99B68134309A8BF9F8F0FD0426706bA40FC1A","isNewUser":true} 

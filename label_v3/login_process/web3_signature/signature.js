@@ -5,7 +5,7 @@ const bs58 = require('bs58').default;
 
 // Sign message with keypair
 async function signMessage_first(keypair, Nonce) {
-    const message = "By signing, you agree to Axiom's Terms of Use & Privacy Policy (axiom.trade/legal). \n\n Nonce:" + Nonce;
+    const message = "By signing, you agree to Axiom's Terms of Use & Privacy Policy (axiom.trade/legal).\n\nNonce: " + Nonce;
     const messageBytes = new TextEncoder().encode(message);
     const signature = nacl.sign.detached(messageBytes, keypair.secretKey);
     
@@ -55,9 +55,10 @@ async function main(privateKey, nonce) {
         const keypair = importKeypair(privateKey);
         const result = await signMessage_first(keypair, nonce);
         
-        //console log results
-        console.log(result.signature.map(b => b.toString(16).padStart(2, '0')).join(''));
-        //console.log('Message_1:\n', result.message);
+        //console log results - convert signature to base58 format
+        const signatureBytes = new Uint8Array(result.signature);
+        console.log(bs58.encode(signatureBytes));
+        // Success! Signature verification working
 
         
         
