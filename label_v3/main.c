@@ -31,7 +31,7 @@ int main (void){
         fprintf(file, "Mint_Adress, Dev_Total_count,Dev_Total_migrated_count,Type,LiquiditySOL,"
             "LiquidityToken,priceSOL,priceUsd,tokenAmount,totalSOL,TotalUSd,InnerIndex,OuterIndex,"
             "initialLiquiditySOL,InitialLiquidityToken,Supply,top10Holders,LpBurner,has_freezeAUthority,slot,DexPaid, Socials, Is_updated,"
-            "CreatorRiskLevel,CreatorRugcount,CreatorTokenCount,Amount_topMarketCapcoins,Amount_topOgCoins," //token_analysis.h
+            //"CreatorRiskLevel,CreatorRugcount,CreatorTokenCount,Amount_topMarketCapcoins,Amount_topOgCoins," //token_analysis.h
             "top10HoldersPercent,DevHoldsPercent,SniperHoldPercent,InsiderHoldPercent,BundlersHoldPercent,numHolders,numBotUsers,totalPairfeesPaid\n" //token_info_pair.h
         );
     }
@@ -40,26 +40,28 @@ int main (void){
 
     for(int i = 2; i < 1000; i++){
 
-        //opening the file to write the data in
-        FILE *file = fopen("response_data_filtered.csv", "a");
-        if(file){
-            fseek(file, 0, SEEK_END);
-            fprintf(file, "%s, ", mint_add[i]);
-        }
-        fclose(file);
-
         search_pair(mint_add[i], &variable_data);
         printf("Token Ticker: %s\n", variable_data.tokenTicker);
         printf("Pair Address: %s\n", variable_data.pairAddress);
         printf("Creator: %s\n", variable_data.creator);
         
         if(variable_data.pairAddress[0] != 0){
+            //opening the file to write the data in
+            FILE *file = fopen("response_data_filtered.csv", "a");
+            if(file){
+                fseek(file, 0, SEEK_END);
+                fprintf(file, "%s, ", mint_add[i]);
+            }
+            fclose(file);
+            
             dev_token(variable_data.creator);
             //holder_data(variable_data.pairAddress);
             last_transaction(variable_data.pairAddress);
             pair_info(variable_data.pairAddress);
-            token_analysis(variable_data.creator, variable_data.tokenTicker);
+            //token_analysis(variable_data.creator, variable_data.tokenTicker);
             token_info_pair(variable_data.pairAddress);
+        } else {
+            printf("Skipping mint address %s - search_pair failed\n", mint_add[i]);
         }
     }
 
