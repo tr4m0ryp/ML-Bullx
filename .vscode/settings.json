@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "token_analysis.h": "c"
+        "token_analysis.h": "c",
+        "header_wallet_nonce.h": "c",
+        "stdio.h": "c"
     }
 }
