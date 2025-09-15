@@ -14,16 +14,14 @@ int main(void){
     char *nonce = wallet_nonce(walletAddress);
     char *signature_v1 = signature(wallet.privateKey, nonce);
     printf("Signature result:\n%s\n", signature_v1);
-    char *response = verify_wallet(walletAddress, signature_v1, nonce);
-
-
+    VerifyWalletResult *result = verify_wallet(walletAddress, signature_v1, nonce);
 
     free(wallet.address);
     free(wallet.privateKey);
     free(wallet.mnemonic);
     free(nonce);
     free(signature_v1);
-    free(response);
+    free_verify_wallet_result(result);
     return 0;
 }
 

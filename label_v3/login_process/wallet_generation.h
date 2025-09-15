@@ -63,6 +63,11 @@ char* generate_wallet(){
     curl_easy_setopt(hnd, CURLOPT_HTTPHEADER, headers);
 
     CURLcode ret = curl_easy_perform(hnd);
+    if (ret != CURLE_OK) {
+        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(ret));
+        free(result.memory);
+        result.memory = NULL;
+    }
     curl_slist_free_all(headers);
     curl_easy_cleanup(hnd);
     return result.memory;
