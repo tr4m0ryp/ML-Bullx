@@ -1,3 +1,7 @@
+#ifndef _MAINCOOK_H
+#define _MAINCOOK_H
+
+
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include "wallet_nonce.h"
@@ -25,3 +29,4 @@ int main(void){
     return 0;
 }
 
+#endif // _MAINCOOK_H
