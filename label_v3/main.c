@@ -1,5 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h> // for sleep function
+#include "login_process/maincook.h"
+#include "header.h"
+#include "api_request.h"
 #include "./search_pair.h"
 #include "./dev_info/dev_token.h"
 #include "./holder_data/holder_data_v3.h"
@@ -38,32 +42,119 @@ int main (void){
 
     fclose(file);
 
-    for(int i = 2; i < 1000; i++){
+    char *cookies = NULL;
+    struct curl_slist *headers = NULL;
+    int request_count = 0;
 
-        search_pair(mint_add[i], &variable_data);
-        printf("Token Ticker: %s\n", variable_data.tokenTicker);
-        printf("Pair Address: %s\n", variable_data.pairAddress);
-        printf("Creator: %s\n", variable_data.creator);
-        
-        if(variable_data.pairAddress[0] != 0){
-            //opening the file to write the data in
-            FILE *file = fopen("response_data_filtered.csv", "a");
-            if(file){
-                fseek(file, 0, SEEK_END);
-                fprintf(file, "%s, ", mint_add[i]);
+    for(int i = 2; i < 1000; i++){
+        if(request_count == 0 || request_count >= 150){  // Refresh cookies every 150 requests
+            // Clean up existing headers first
+            if(headers) {
+                curl_slist_free_all(headers);
+                headers = NULL;
             }
-            fclose(file);
+            if(cookies) {
+                free(cookies);
+                cookies = NULL;
+            }
             
-            dev_token(variable_data.creator);
-            //holder_data(variable_data.pairAddress);
-            last_transaction(variable_data.pairAddress);
-            pair_info(variable_data.pairAddress);
-            //token_analysis(variable_data.creator, variable_data.tokenTicker);
-            token_info_pair(variable_data.pairAddress);
-        } else {
-            printf("Skipping mint address %s - search_pair failed\n", mint_add[i]);
+            // Retry cookie generation until successful
+            int cookie_retry_count = 0;
+            const int max_cookie_retries = 3000;
+            
+            while(cookie_retry_count < max_cookie_retries) {
+                cookies = cookies_main();
+                if(cookies) {
+                    // Generate new headers with the fresh cookies
+                    headers = set_axiom_request_headers(cookies);
+                    if(headers) {
+                        request_count = 0;
+                        printf("Successfully refreshed cookies for request #%d\n", i);
+                        break; // Success, exit retry loop
+                    } else {
+                        printf("Failed to create headers for request #%d\n", i);
+                        free(cookies);
+                        cookies = NULL;
+                    }
+                } else {
+                    printf("Failed to generate cookies for request #%d (attempt %d)\n", 
+                           i, cookie_retry_count + 1);
+                }
+                
+                cookie_retry_count++;
+                
+                // Add delay between retries (exponential backoff)
+                if(cookie_retry_count < max_cookie_retries) {
+                    int delay = cookie_retry_count * 2; // 2, 4, 6, 8 seconds
+                    printf("Waiting %d seconds before retry...\n", delay);
+                    sleep(delay);
+                }
+            }
+            
+            // If all retries failed, skip this iteration but don't advance i
+            if(!cookies || !headers) {
+                printf("All cookie generation attempts failed for request #%d. Retrying same request...\n", i);
+                i--; // Decrement i so it will be the same on next iteration
+                continue;
+            }
+        }
+
+        // Try to search for the pair with retry mechanism
+        int search_retry_count = 0;
+        const int max_search_retries = 3;
+        int search_success = 0;
+        
+        while(search_retry_count < max_search_retries && !search_success) {
+            if(search_retry_count > 0) {
+                printf("Retrying search_pair for mint %s (attempt %d/%d)\n", 
+                       mint_add[i], search_retry_count + 1, max_search_retries);
+            }
+            
+            search_pair(mint_add[i], &variable_data, headers);
+            
+            if(variable_data.pairAddress[0] != 0) {
+                search_success = 1;
+                request_count++;
+                printf("Token Ticker: %s\n", variable_data.tokenTicker);
+                printf("Pair Address: %s\n", variable_data.pairAddress);
+                printf("Creator: %s\n", variable_data.creator);
+                
+                //opening the file to write the data in
+                FILE *file = fopen("response_data_filtered.csv", "a");
+                if(file){
+                    fseek(file, 0, SEEK_END);
+                    fprintf(file, "%s, ", mint_add[i]);
+                }
+                fclose(file);
+                
+                dev_token(variable_data.creator, headers);
+                //holder_data(variable_data.pairAddress, headers);
+                last_transaction(variable_data.pairAddress, headers);
+                pair_info(variable_data.pairAddress, headers);
+                //token_analysis(variable_data.creator, variable_data.tokenTicker, headers);
+                token_info_pair(variable_data.pairAddress, headers);
+            } else {
+                search_retry_count++;
+                printf("search_pair failed for mint address %s (attempt %d)\n", 
+                       mint_add[i], search_retry_count);
+                
+                // If this wasn't the last retry, wait before trying again
+                if(search_retry_count < max_search_retries) {
+                    printf("Waiting 2 seconds before retry...\n");
+                    sleep(2);
+                }
+            }
+        }
+        
+        // If all search retries failed, log it but continue to next mint address
+        if(!search_success) {
+            printf("All search attempts failed for mint address %s - moving to next\n", mint_add[i]);
+            // Still increment request_count to avoid infinite cookie refreshing
+            request_count++;
         }
     }
+    if(headers) curl_slist_free_all(headers);
+    if(cookies) free(cookies);  // Free cookies at end
 
     return 0;
 

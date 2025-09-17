@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <curl/curl.h>
 #include "../api_request.h"
 #include <string.h>
 
@@ -21,18 +22,17 @@ typedef struct{
 
 
 //prototyping
-int api_request(char *url);
 int pair_info_structure_filtering(PairInfoData *data);
 
 
-int pair_info(char *pairAddress){
+int pair_info(char *pairAddress, struct curl_slist *headers){
     PairInfoData data;
     char url[256];
     // Construct the URL using snprintf (safer than sprintf)
     snprintf(url, sizeof(url), "https://api9.axiom.trade/pair-info?pairAddress=%s", pairAddress);
     
     // Call the API request function with the constructed URL
-    int result = api_request(url);
+    int result = api_request(url, headers);
     if (result == 0) {
         // Parse the response data
         pair_info_structure_filtering(&data);

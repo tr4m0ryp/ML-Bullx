@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <curl/curl.h>
 #include "api_request.h"
 
 typedef struct {
@@ -12,18 +13,18 @@ typedef struct {
 
 //prototyping
 int search_token_Data(SearchPairData *data);
-int search_creator_backup(SearchPairData *data);
+int search_creator_backup(SearchPairData *data, struct curl_slist *headers);
 
-int search_pair(char *mint_address, SearchPairData *data) {
+int search_pair(char *mint_address, SearchPairData *data, struct curl_slist *headers) {
     char url[512];
     snprintf(url, sizeof(url), "https://api3.axiom.trade/search-v3?searchQuery=%s&isOg=false&isPumpSearch=false&isBonkSearch=false&isBagsSearch=false&onlyBonded=false", mint_address);
-    api_request(url); // Assume this writes to response_data.txt
+    api_request(url, headers); // Pass headers to api_request
     
     
     search_token_Data(data);
     if(data->creator[0] == '\0') {
         //printf("Creator address not found, attempting backup search...\n");
-        search_creator_backup(data);
+        search_creator_backup(data, headers);
         //printf("Backup creator address found: %s\n", data->creator);
         return 0;
     }
@@ -31,12 +32,12 @@ int search_pair(char *mint_address, SearchPairData *data) {
 }
 
 
-int search_creator_backup(SearchPairData *data){
+int search_creator_backup(SearchPairData *data, struct curl_slist *headers){
     char url[512];
     snprintf(url, sizeof(url), "https://api9.axiom.trade/pair-info?pairAddress=%s", data->pairAddress);
 
     //filtering creator adress:
-    api_request(url);
+    api_request(url, headers);
 
     FILE *file = fopen("response_data.txt", "r");
 
@@ -101,6 +102,19 @@ int search_token_Data(SearchPairData *data) {
 
     if (read_size != file_size) {
         fprintf(stderr, "Error: Failed to read entire file\n");
+        free(content);
+        return -1;
+    }
+
+    // Debug: Print first 200 chars of response to see what we got
+    printf("API Response: %.200s%s\n", content, (strlen(content) > 200) ? "..." : "");
+
+    // Check for session invalid error
+    if (strstr(content, "Session invalid") || strstr(content, "please login again")) {
+        printf("Session invalid detected in search response\n");
+        memset(data->tokenTicker, 0, sizeof(data->tokenTicker));
+        memset(data->pairAddress, 0, sizeof(data->pairAddress));
+        memset(data->creator, 0, sizeof(data->creator));
         free(content);
         return -1;
     }

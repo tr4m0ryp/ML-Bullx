@@ -4,16 +4,16 @@
 #include <stdio.h>
 #include "header_wallet_nonce.h"
 #include <curl/curl.h>
-#include "api_request.h"
+#include "api_request_v2.h"
 
 char* wallet_nonce(char* walletAddress){
-    struct curl_slist *headers = set_axiom_request_headers();
+    struct curl_slist *headers = set_axiom_request_headers_v2();
     char payload[256];
     snprintf(payload, sizeof(payload), "{\"walletAddress\":\"%s\"}", walletAddress);
 
-    api_request("https://api9.axiom.trade/wallet-nonce", headers, payload);
-    //printf("Response Data: %s", response_data.memory);
-    char *nonce = response_data.memory;
+    api_request_post("https://api9.axiom.trade/wallet-nonce", headers, payload);
+    //printf("Response Data: %s", response_data_v2.memory);
+    char *nonce = response_data_v2.memory;
     //printf("Nonce: %s\n", nonce);
     return nonce;
 }

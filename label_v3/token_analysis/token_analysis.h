@@ -2,6 +2,7 @@
 #define TOKEN_ANALYSIS_H
 
 #include <stdio.h>
+#include <curl/curl.h>
 #include "../api_request.h"
 
 typedef struct{
@@ -21,7 +22,7 @@ typedef struct{
 int token_analysis_structure_filtering(TokenAnalysisData *data);
 
 
-int token_analysis(char *devAddress, char *tokenTicker) {
+int token_analysis(char *devAddress, char *tokenTicker, struct curl_slist *headers) {
     TokenAnalysisData data;
     char url[256];
     
@@ -29,7 +30,7 @@ int token_analysis(char *devAddress, char *tokenTicker) {
     snprintf(url, sizeof(url), "https://api9.axiom.trade/token-analysis?devAddress=%s&tokenTicker=%s", devAddress, tokenTicker);
     printf("URL: %s\n", url); // Debugging line to check the URL    
     // Call the API request function with the constructed URL
-    int result = api_request(url);
+    int result = api_request(url, headers);
    if (result == 0){
     token_analysis_structure_filtering(&data);
 

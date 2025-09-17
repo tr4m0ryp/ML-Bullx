@@ -38,9 +38,8 @@ size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, struct Res
 }
 
 
-int api_request(char *pairAdress){
+int api_request(char *pairAdress, struct curl_slist *headers){
 
-    struct curl_slist *headers = NULL;
     CURL *curl;
     CURLcode result;
     
@@ -54,8 +53,6 @@ int api_request(char *pairAdress){
         free(response_data.memory);
         return 1;
     }
-
-    headers = set_axiom_request_headers();
 
     curl_easy_setopt(curl, CURLOPT_URL, pairAdress);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -81,7 +78,7 @@ int api_request(char *pairAdress){
     }
 
     // Cleanup
-    curl_slist_free_all(headers);
+    // DON'T free headers here - they are managed by main.c
     curl_easy_cleanup(curl);
     // DON'T free response_data.memory here - it will be freed after filtering
     return result;

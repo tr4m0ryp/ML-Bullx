@@ -1,5 +1,5 @@
-#ifndef HEADER_H
-#define HEADER_H
+#ifndef HEADER_WALLET_NONCE_H
+#define HEADER_WALLET_NONCE_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,7 +7,7 @@
 #include <curl/curl.h>
 
 //header requirements for api request
-struct curl_slist* set_axiom_request_headers(void) {
+struct curl_slist* set_axiom_request_headers_v2(void) {
     struct curl_slist *headers = NULL;
 
     // Add all required headers for wallet-nonce endpoint
@@ -30,4 +30,4 @@ struct curl_slist* set_axiom_request_headers(void) {
     return headers;
 }
 
-#endif // HEADER_H
+#endif // HEADER_WALLET_NONCE_H

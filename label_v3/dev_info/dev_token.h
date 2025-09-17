@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <curl/curl.h>
 #include "../api_request.h"
 
 
@@ -13,17 +14,16 @@ typedef struct{
 }DevTokenData;
 
 //protoypes
-int api_request(char *pairAdress);
 int dev_token_structure_filtering(DevTokenData *data);
 
 
-int dev_token(char *creator_address)
+int dev_token(char *creator_address, struct curl_slist *headers)
 {
     DevTokenData data;
 
     char url[256];
     snprintf(url, sizeof(url), "https://api9.axiom.trade/dev-tokens-v2?devAddress=%s", creator_address);
-    int result = api_request(url);
+    int result = api_request(url, headers);
     
     if (result == 0) {
         // Parse the response data

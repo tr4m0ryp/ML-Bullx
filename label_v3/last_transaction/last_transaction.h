@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <curl/curl.h>
 #include "../api_request.h"
 
 
@@ -23,7 +24,7 @@ typedef struct{
 // Function prototypes
 int last_transaction_structure_filtering(LastTransactionData *data);
 
-int last_transaction(char *pairAddress){
+int last_transaction(char *pairAddress, struct curl_slist *headers){
     LastTransactionData data;
     char url[256];
     
@@ -43,7 +44,7 @@ int last_transaction(char *pairAddress){
     snprintf(url, sizeof(url), "https://api9.axiom.trade/last-transaction?pairAddress=%s", pairAddress);
 
     // Call the API request function with the constructed URL
-    int result = api_request(url);
+    int result = api_request(url, headers);
     if (result == 0) {
         // Parse the response and fill the data structure
         last_transaction_structure_filtering(&data);
