@@ -87,22 +87,28 @@ int last_transaction_structure_filtering(LastTransactionData *data){
     //printf("Parsing JSON: %.200s...\n", json_data);  // Debug: show first 200 chars
 
     // Parse type field
+    strcpy(data->type, "unknown");
+
     char *type_field = strstr(json_data, "\"type\"");
-    
     if (type_field) {
-        char *start = strstr(type_field, ":");
-        if (start) {
-            start = strchr(start, '"');
-            if (start) {
-                start++;  // Skip opening quote
-                char *end = strchr(start, '"');
-                if (end) {
-                    int len = end - start;
-                    if (len < 255) {  // Ensure we don't overflow
-                        strncpy(data->type, start, len);
-                        data->type[len] = '\0';
-                    }
+        char *start = strchr(type_field, '"');
+        if (start && (start = strchr(start + 1, '"')) && start++) {
+            char *end = strchr(start, '"');
+            if (end && (end - start) < 255) {
+                char temp[256];
+                strncpy(temp, start, end - start);
+                temp[end - start] = '\0';
+                
+                // Convert to lowercase and check for 'b' or 's'
+                for (int i = 0; temp[i]; i++) {
+                    temp[i] = tolower(temp[i]);
                 }
+                char *b_pos = strchr(temp, 'b');
+                char *s_pos = strchr(temp, 's');
+                
+                if (b_pos && !s_pos) strcpy(data->type, "buy");
+                else if (s_pos && !b_pos) strcpy(data->type, "sell");
+                else if (b_pos && s_pos) strcpy(data->type, (b_pos < s_pos) ? "buy" : "sell");
             }
         }
     }
