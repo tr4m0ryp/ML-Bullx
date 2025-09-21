@@ -106,19 +106,6 @@ int search_token_Data(SearchPairData *data) {
         return -1;
     }
 
-    // Debug: Print first 200 chars of response to see what we got
-    printf("API Response: %.200s%s\n", content, (strlen(content) > 200) ? "..." : "");
-
-    // Check for session invalid error
-    if (strstr(content, "Session invalid") || strstr(content, "please login again")) {
-        printf("Session invalid detected in search response\n");
-        memset(data->tokenTicker, 0, sizeof(data->tokenTicker));
-        memset(data->pairAddress, 0, sizeof(data->pairAddress));
-        memset(data->creator, 0, sizeof(data->creator));
-        free(content);
-        return -1;
-    }
-
     // Initialize output structure
     memset(data->tokenTicker, 0, sizeof(data->tokenTicker));
     memset(data->pairAddress, 0, sizeof(data->pairAddress));

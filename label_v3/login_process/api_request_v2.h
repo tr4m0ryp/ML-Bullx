@@ -68,10 +68,10 @@ size_t WriteHeaderCallbackV2(void *contents, size_t size, size_t nmemb, struct H
 
 // Function to configure rotating proxy for login requests
 void configure_login_proxy(CURL *curl) {
-    // Configure rotating proxy for login requests
-    curl_easy_setopt(curl, CURLOPT_PROXY, "p.webshare.io:80");
+    // Configure local rotating proxy server (proxybroker)
+    curl_easy_setopt(curl, CURLOPT_PROXY, "127.0.0.1:8888");
     curl_easy_setopt(curl, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
-    curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, "uqfntenh-rotate:2mqxqanmjmr2");
+    // No authentication needed for local proxy server
     
     // Enable verbose output for debugging proxy connection (can be disabled in production)
     // curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
@@ -105,7 +105,7 @@ int api_request_post(char *url, struct curl_slist *headers, const char *payload)
     curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, WriteHeaderCallbackV2);
     curl_easy_setopt(curl, CURLOPT_HEADERDATA, (void *)&header_data_v2);
 
-    // Configure rotating proxy for login requests
+    // Configure local rotating proxy server (proxybroker) for login requests
     configure_login_proxy(curl);
 
     result = curl_easy_perform(curl);

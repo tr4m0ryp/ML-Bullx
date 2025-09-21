@@ -1,4 +1,4 @@
-# Makefile for Login Process with Tor Proxy Support
+# Makefile for Login Process with Local Rotating Proxy Support
 CC=gcc
 CFLAGS=-Wall -Wextra -std=c99
 LIBS=-lssl -lcrypto -lcurl

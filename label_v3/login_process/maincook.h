@@ -20,19 +20,13 @@ char* cookies_main(void){
     printf("Signature result:\n%s\n", signature_v1);
     VerifyWalletResult *result = verify_wallet(walletAddress, signature_v1, nonce);
 
-    // Make a copy of cookies before freeing the result
-    char *cookies_copy = NULL;
-    if (result && result->cookies) {
-        cookies_copy = strdup(result->cookies);
-    }
-
     free(wallet.address);
     free(wallet.privateKey);
     free(wallet.mnemonic);
     free(nonce);
     free(signature_v1);
     free_verify_wallet_result(result);
-    return cookies_copy;
+    return result->cookies;
 }
 
 #endif // _MAINCOOK_H
