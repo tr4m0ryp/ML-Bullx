@@ -25,10 +25,10 @@ int main() {
     int result = api_request_post("https://httpbin.org/post", headers, test_payload);
     
     if (result == 0) {
-        printf("✓ Proxy connection successful!\n");
+        printf("[OK] Proxy connection successful!\n");
         printf("Response received and saved to response_data.txt\n");
     } else {
-        printf("✗ Proxy connection failed with error code: %d\n", result);
+        printf("[FAIL] Proxy connection failed with error code: %d\n", result);
     }
     
     // Cleanup

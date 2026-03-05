@@ -11,14 +11,8 @@ import sys
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime
 
-# Add paths for imports
-current_dir = os.path.dirname(__file__)
-label_dir = os.path.join(os.path.dirname(current_dir), "data_pipeline", "label")
-sys.path.insert(0, current_dir)
-sys.path.insert(0, label_dir)
-
-from onchain_provider import OnChainDataProvider, PriceData, HistoricalData
-from config.config_loader import load_config
+from on_chain_solana_pipeline.onchain_provider import OnChainDataProvider, PriceData, HistoricalData
+from on_chain_solana_pipeline.config.config_loader import load_config
 
 logger = logging.getLogger(__name__)
 

@@ -17,11 +17,20 @@ char* signature(const char* private_key, const char* nonce) {
     char buffer[4096];
     size_t total_length = 0;
     
-    // Build the command to run the Node.js script
-    snprintf(command, sizeof(command), 
-             "cd /home/tramoryp/Tr4m0ryp_B/ML-Bullx/label_v3/login_process/web3_signature && "
-             "node -e \"const main = require('./signature.js').main; main('%s', '%s');\"", 
-             private_key, nonce);
+    // Build the path relative to this source file's location.
+    // __FILE__ resolves to label_v3/login_process/signature.h at compile time.
+    // The web3_signature directory sits alongside this header.
+    const char *script_dir = __FILE__;
+    char dir_buf[1024];
+    strncpy(dir_buf, script_dir, sizeof(dir_buf) - 1);
+    dir_buf[sizeof(dir_buf) - 1] = '\0';
+    char *last_slash = strrchr(dir_buf, '/');
+    if (last_slash) *last_slash = '\0';
+
+    snprintf(command, sizeof(command),
+             "cd %s/web3_signature && "
+             "node -e \"const main = require('./signature.js').main; main('%s', '%s');\"",
+             dir_buf, private_key, nonce);
     
     // Execute the command and capture output
     fp = popen(command, "r");

@@ -8,9 +8,10 @@ import pytest
 import pandas as pd
 from unittest.mock import AsyncMock, Mock, patch
 from datetime import datetime, timedelta
-from enhanced_parsing import enhanced_parse_swap_details, _parse_basic_token_transfer, retry_with_exponential_backoff
-from enhanced_data_collection import EnhancedDataCollection
-from token_labeler_copy import EnhancedTokenLabeler, TokenMetrics
+from data_pipeline.label.enhanced_parsing import enhanced_parse_swap_details, _parse_basic_token_transfer, retry_with_exponential_backoff
+from data_pipeline.label.enhanced_data_collection import EnhancedDataCollection
+from data_pipeline.label.token_labeler import EnhancedTokenLabeler
+from shared.models import TokenMetrics
 
 
 class TestEnhancedParsing:

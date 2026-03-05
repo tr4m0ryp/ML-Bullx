@@ -8,8 +8,8 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 import pandas as pd
 import asyncio
-from enhanced_parsing import enhanced_is_swap_transaction, enhanced_parse_swap_details, retry_with_exponential_backoff, log_parsing_failure
-from fallback_calculations import FallbackCalculations
+from data_pipeline.label.enhanced_parsing import enhanced_is_swap_transaction, enhanced_parse_swap_details, retry_with_exponential_backoff, log_parsing_failure
+from data_pipeline.label.fallback_calculations import FallbackCalculations
 
 logger = logging.getLogger(__name__)
 

@@ -1,0 +1,65 @@
+# Secrets and credentials
+.env
+*.env
+keypair.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Node
+node_modules/
+package-lock.json
+
+# Data files (keep input fixtures, ignore generated output)
+*.backup_*
+output*.csv
+detailed_solana_memecoins.csv
+solana_memecoins.csv
+response_data_filtered.csv
+response_data_filtered.txt
+*_checkpoint*.json
+mint_addresses_checkpoint_simple.json
+test_results.csv
+quick_test_results.csv
+
+# Generated JSON data from C scrapers
+label_v2/general_info/*.json
+label_v2/mint_api/*.json
+label_v2/risk_info/*.json
+label_v3/token_info_pair/response_data.txt
+
+# Logs
+*.log
+
+# Compiled C binaries and objects
+*.o
+*.out
+label_v2/general_info/token_info
+label_v2/mint_api/mint_request
+label_v2/risk_info/risk_count
+label_v3/main
+label_v3/holder_data/holder_data_v3
+label_v3/last_transaction/last_transaction
+label_v3/token_info_pair/token_info_pair
+label_v3/login_process/test_proxy
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.asc

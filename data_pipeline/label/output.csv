@@ -1,5 +1,0 @@
-mint_address,label,label_reason,peak_72h,avg_post_72h,has_historical_data,price_points_count,volume_24h
-X3qPC4HYu3DBSxGYbevftb16RJYNm3c87qV1z3tDXRj,rugpull,coordinated_dump_pattern,0.08764072651918058,0.01213204224082853,True,38,
-4ZTzLk9dsmzLFSmT1tcFeLUyfKhuGPpWQPakkY8Hpump,unsuccessful,active_but_insufficient_success_metrics,4.822501255638847e-06,,False,0,
-9Nj2NN9z1JxmSPDtJ7b2VWn3m8RgeZx2jAeGWTp2pump,inactive,no_meaningful_trading_activity,4.87141902271783e-06,,False,0,
-H9kRfXFRK6vbfCkq4TpGbqxV1YUQUMcdL3aQHNV6pump,successful,success_via_legitimacy_and_72h_peak,0.061736655046985535,0.009730107256667918,True,0,

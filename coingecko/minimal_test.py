@@ -37,16 +37,16 @@ def quick_solana_test():
                             'mintaddress': address,
                             'successful': 'successful'
                         })
-                        print(f"  ✓ Found: {address}")
+                        print(f"  [OK] Found: {address}")
                     else:
-                        print(f"  ✗ No address")
+                        print(f"  [FAIL] No address")
                 else:
-                    print(f"  ✗ Not on Solana")
+                    print(f"  [FAIL] Not on Solana")
             else:
-                print(f"  ✗ API error: {response.status_code}")
+                print(f"  [FAIL] API error: {response.status_code}")
                 
         except Exception as e:
-            print(f"  ✗ Error: {e}")
+            print(f"  [FAIL] Error: {e}")
     
     if results:
         df = pd.DataFrame(results)

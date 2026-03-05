@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include "login_process/maincook.h"
@@ -10,7 +11,6 @@
 #include "./pair_info/pair_info.h"
 #include "./token_info_pair/token_info_pair.h"
 #include "./token_analysis/token_analysis.h"
-#define _POSIX_C_SOURCE 200809L
 
 //stuctures
 typedef struct{
@@ -32,7 +32,7 @@ int main (void){
 
     FILE *file = fopen("response_data_filtered.csv", "w");
     if(file){
-        fprintf(file, "Mint_Adress, Dev_Total_count,Dev_Total_migrated_count,Type,LiquiditySOL,"
+        fprintf(file, "Mint_Address, Dev_Total_count,Dev_Total_migrated_count,Type,LiquiditySOL,"
             "LiquidityToken,priceSOL,priceUsd,tokenAmount,totalSOL,TotalUSd,InnerIndex,OuterIndex,"
             "initialLiquiditySOL,InitialLiquidityToken,Supply,top10Holders,LpBurner,has_freezeAUthority,slot,DexPaid, Socials, Is_updated,"
             //"CreatorRiskLevel,CreatorRugcount,CreatorTokenCount,Amount_topMarketCapcoins,Amount_topOgCoins," //token_analysis.h
@@ -94,7 +94,7 @@ CSV_Data mint_token_csv(void){
     //opening the file
     FILE *file = fopen("input.csv", "r");
     if(file == NULL){
-        fprintf(stderr, "Could noot open file input.csv\n");
+        fprintf(stderr, "Could not open file input.csv\n");
         return data;
     }
 
@@ -109,7 +109,7 @@ CSV_Data mint_token_csv(void){
             number_of_lines++;
         }
     }
-    printf("Number of lsines is %i\n", number_of_lines);
+    printf("Number of lines is %i\n", number_of_lines);
 
     rewind(file);
     data.number_of_lines = number_of_lines;

@@ -8,7 +8,7 @@ from datetime import datetime
 import base64
 import struct
 
-from config.config_loader import PipelineConfig
+from on_chain_solana_pipeline.config.config_loader import PipelineConfig
 
 logger = logging.getLogger(__name__)
 
@@ -77,12 +77,12 @@ class SwapParser:
             if len(accounts) < 4:
                 return None
             
-            # This is a stub - real implementation would:
+            # TODO: Implement Jupiter swap parsing.
+            # Steps needed:
             # 1. Decode instruction data to get swap amounts
             # 2. Identify source/destination tokens from accounts
             # 3. Calculate price from input/output amounts
-            
-            # For now, return None (would need actual instruction decoding)
+            logger.warning("Jupiter swap parsing not yet implemented")
             return None
             
         except Exception as e:
@@ -94,8 +94,8 @@ class SwapParser:
         Parse Raydium AMM swap instruction.
         """
         try:
-            # Similar to Jupiter, this would need actual instruction decoding
-            # to extract swap amounts and calculate price
+            # TODO: Implement Raydium swap parsing.
+            logger.warning("Raydium swap parsing not yet implemented")
             return None
             
         except Exception as e:

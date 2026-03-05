@@ -97,11 +97,11 @@ class OptimizedCoinGeckoScraper:
                 solana_info = self.extract_solana_contract(coin_data)
                 if solana_info:
                     results.append(solana_info)
-                    logger.info(f"✓ {solana_info['name']}: {solana_info['mintaddress']}")
+                    logger.info(f"[OK] {solana_info['name']}: {solana_info['mintaddress']}")
                 else:
-                    logger.info(f"✗ {coin_id}: No Solana address found")
+                    logger.info(f"[FAIL] {coin_id}: No Solana address found")
             else:
-                logger.warning(f"✗ Failed to fetch {coin_id}")
+                logger.warning(f"[FAIL] Failed to fetch {coin_id}")
             
             # Rate limiting
             time.sleep(2)

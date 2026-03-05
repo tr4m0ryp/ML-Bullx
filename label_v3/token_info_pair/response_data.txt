@@ -1,1 +1,0 @@
-{"top10HoldersPercent":30.893258256646412,"devHoldsPercent":1.0004147465162589e-7,"snipersHoldPercent":0,"insidersHoldPercent":41.83503048742554,"bundlersHoldPercent":0.6925921479290209,"dexPaid":true,"numHolders":3354,"numBotUsers":335,"totalPairFeesPaid":3.40868655695}

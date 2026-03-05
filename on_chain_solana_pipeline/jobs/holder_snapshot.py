@@ -12,9 +12,7 @@ from datetime import datetime
 from solana.rpc.async_api import AsyncClient
 from solana.publickey import PublicKey
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from config.config_loader import load_config
+from on_chain_solana_pipeline.config.config_loader import load_config
 
 logger = logging.getLogger(__name__)
 

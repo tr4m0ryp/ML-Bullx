@@ -8,78 +8,21 @@ import asyncio
 import aiohttp
 import logging
 import os
-import sys
 import time
 from collections import deque
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 from dotenv import load_dotenv
 
-# Load environment variables
+from shared.models import TokenMetrics
+from shared.constants import ONE_HOUR, THREE_DAYS_SEC, SUSTAIN_DAYS_SEC, HELIUS_BASE_URL
+from on_chain_solana_pipeline.api_key_manager import get_key_manager
+
 load_dotenv()
 
-# Add the current directory to the path for imports
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, current_dir)
-
-from api_key_manager import get_key_manager
-
-# ───────────────────────── Logging ──────────────────────────
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("real_onchain_labeling.log"),
-        logging.StreamHandler()
-    ]
-)
 logger = logging.getLogger(__name__)
-
-# ──────────────────────── Constants ─────────────────────────
-ONE_HOUR = 60 * 60
-THREE_DAYS_SEC = 3 * 24 * 60 * 60
-SUSTAIN_DAYS_SEC = 7 * 24 * 60 * 60
-HELIUS_BASE_URL = "https://rpc.helius.xyz"
-
-# ─────────────────── Dataclass per token ────────────────────
-@dataclass
-class TokenMetrics:
-    mint_address: str
-    current_price: Optional[float] = None
-    volume_24h: Optional[float] = None
-    market_cap: Optional[float] = None
-    peak_price_72h: Optional[float] = None
-    post_ath_peak_price: Optional[float] = None
-    has_sustained_drop: bool = False
-    price_drops: List[Tuple[datetime, float]] = None
-    holder_count: Optional[int] = None
-    transaction_count: int = 0  # Track number of swap transactions
-    
-    # Enhanced metrics for sophisticated classification
-    early_phase_drops: List[Tuple[datetime, float, float]] = None  # (time, drop_pct, recovery_ratio)
-    late_phase_drops: List[Tuple[datetime, float, float]] = None   # (time, drop_pct, recovery_ratio)
-    max_recovery_after_drop: Optional[float] = None  # Best recovery ratio after any major drop
-    rapid_drops_count: int = 0  # Number of rapid (< 2h) major drops
-    days_since_last_major_drop: Optional[int] = None
-    has_shown_recovery: bool = False  # Has recovered significantly after any major drop
-    current_trend: Optional[str] = None  # "recovering", "declining", "stable"
-    
-    # Mega-success metrics for tokens with massive appreciation
-    mega_appreciation: Optional[float] = None  # Total appreciation from launch to ATH
-    current_vs_ath_ratio: Optional[float] = None  # Current price as % of ATH
-    total_major_drops: int = 0  # Total count of major drops
-    final_evaluation_score: Optional[float] = None  # Overall success score
-
-    def __post_init__(self):
-        if self.price_drops is None:
-            self.price_drops = []
-        if self.early_phase_drops is None:
-            self.early_phase_drops = []
-        if self.late_phase_drops is None:
-            self.late_phase_drops = []
 
 # ─────────────────────── Real OnChain Data Provider ───────────────────────
 class RealOnChainProvider:

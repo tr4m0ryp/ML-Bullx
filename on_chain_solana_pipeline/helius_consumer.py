@@ -13,12 +13,9 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 from dataclasses import dataclass
 
-# Add current directory to path for imports
-sys.path.insert(0, os.path.dirname(__file__))
-
-from api_key_manager import HeliusAPIKeyManager, get_key_manager
-from config.config_loader import load_config
-from swap_parser import SwapParser
+from on_chain_solana_pipeline.api_key_manager import HeliusAPIKeyManager, get_key_manager
+from on_chain_solana_pipeline.config.config_loader import load_config
+from on_chain_solana_pipeline.swap_parser import SwapParser
 
 logger = logging.getLogger(__name__)
 

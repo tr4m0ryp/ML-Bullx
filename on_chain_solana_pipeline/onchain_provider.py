@@ -16,16 +16,8 @@ import json
 import base58
 import pandas as pd
 
-# Add current directory to path
-pipeline_dir = os.path.dirname(__file__)
-sys.path.insert(0, pipeline_dir)
-
-# Add config subdirectory to path
-config_dir = os.path.join(pipeline_dir, "config")
-sys.path.insert(0, config_dir)
-
-from api_key_manager import get_key_manager
-from config_loader import load_config, PipelineConfig
+from on_chain_solana_pipeline.api_key_manager import get_key_manager
+from on_chain_solana_pipeline.config.config_loader import load_config, PipelineConfig
 
 logger = logging.getLogger(__name__)
 

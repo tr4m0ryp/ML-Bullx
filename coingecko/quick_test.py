@@ -25,19 +25,19 @@ def quick_test():
         if bonk_details:
             solana_info = scraper.extract_solana_info(bonk_details)
             if solana_info:
-                print(f"✓ Found BONK: {solana_info['mintaddress']}")
+                print(f"[OK] Found BONK: {solana_info['mintaddress']}")
             else:
-                print("✗ Failed to extract Solana info from BONK")
+                print("[FAIL] Failed to extract Solana info from BONK")
         else:
-            print("✗ Failed to get BONK details")
+            print("[FAIL] Failed to get BONK details")
     except Exception as e:
-        print(f"✗ Error testing BONK: {e}")
+        print(f"[FAIL] Error testing BONK: {e}")
     
     # Test 2: Get a few memecoins from API
     print("\nTest 2: Getting memecoin category...")
     try:
         memecoins = scraper.get_coins_by_category("meme-token")
-        print(f"✓ Found {len(memecoins)} memecoins from API")
+        print(f"[OK] Found {len(memecoins)} memecoins from API")
         
         # Test first 3 coins for Solana addresses
         solana_found = []
@@ -48,20 +48,20 @@ def quick_test():
                     solana_info = scraper.extract_solana_info(details)
                     if solana_info:
                         solana_found.append(solana_info)
-                        print(f"  ✓ Solana coin: {solana_info['name']} - {solana_info['mintaddress']}")
+                        print(f"  [OK] Solana coin: {solana_info['name']} - {solana_info['mintaddress']}")
                 time.sleep(1)  # Rate limiting
             except Exception as e:
-                print(f"  ✗ Error with {coin['id']}: {e}")
+                print(f"  [FAIL] Error with {coin['id']}: {e}")
         
-        print(f"\n✓ Found {len(solana_found)} Solana memecoins in test sample")
+        print(f"\n[OK] Found {len(solana_found)} Solana memecoins in test sample")
         
         # Save test results
         if solana_found:
             scraper.save_to_csv(solana_found, 'test_results.csv')
-            print("✓ Saved test results to test_results.csv")
+            print("[OK] Saved test results to test_results.csv")
         
     except Exception as e:
-        print(f"✗ Error getting memecoins: {e}")
+        print(f"[FAIL] Error getting memecoins: {e}")
     
     print("\n=== Test Complete ===")
 

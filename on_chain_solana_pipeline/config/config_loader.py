@@ -5,8 +5,11 @@ import os
 try:
     import yaml
 except ImportError:
-    # Fallback if PyYAML not available
     yaml = None
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
 from typing import Dict, Any, List
 from dataclasses import dataclass
 
@@ -59,23 +62,10 @@ class PipelineConfig:
 
 def load_env_variables() -> Dict[str, Any]:
     """Load environment variables, including from .env file."""
-    # Try to load .env file
     env_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
-    if os.path.exists(env_file_path):
-        try:
-            with open(env_file_path, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith('#') and '=' in line:
-                        key, value = line.split('=', 1)
-                        # Clean up the value - remove quotes and trailing comments
-                        value = value.split(' ---')[0].strip()  # Remove "--- IGNORE" comments
-                        value = value.strip('\'"')  # Remove quotes
-                        if value:  # Only set non-empty values
-                            os.environ[key] = value
-        except Exception as e:
-            print(f"Warning: Could not load .env file: {e}")
-    
+    if load_dotenv is not None:
+        load_dotenv(env_file_path, override=False)
+
     # Collect Helius API keys
     helius_keys = []
     i = 1

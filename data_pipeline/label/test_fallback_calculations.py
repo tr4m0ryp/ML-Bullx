@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import Mock, AsyncMock, patch
 import numpy as np
 from datetime import datetime, timedelta
-from fallback_calculations import FallbackCalculations
+from data_pipeline.label.fallback_calculations import FallbackCalculations
 
 
 class TestFallbackCalculations:

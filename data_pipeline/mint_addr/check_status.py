@@ -4,7 +4,7 @@ Check current scraper status and configuration
 """
 
 import json
-from config_loader import load_config
+from data_pipeline.mint_addr.config_loader import load_config
 from datetime import datetime
 
 def check_status():
@@ -12,7 +12,7 @@ def check_status():
     config = load_config()
     target = config.get('target_mint_count', 100000)
     
-    print(f"🎯 Current target from config: {target:,} addresses")
+    print(f"Current target from config: {target:,} addresses")
     
     # Check checkpoint
     try:
@@ -22,20 +22,20 @@ def check_status():
         current_count = len(checkpoint.get('mint_addresses', []))
         timestamp = checkpoint.get('timestamp', 'Unknown')
         
-        print(f"📊 Current collected: {current_count:,} addresses")
-        print(f"⏰ Last updated: {timestamp}")
-        print(f"📈 Progress: {current_count/target*100:.2f}%")
-        print(f"🎯 Remaining: {target - current_count:,} addresses")
+        print(f"Current collected: {current_count:,} addresses")
+        print(f"Last updated: {timestamp}")
+        print(f"Progress: {current_count/target*100:.2f}%")
+        print(f"Remaining: {target - current_count:,} addresses")
         
         if current_count >= target:
-            print("✅ Target already reached!")
+            print("[DONE] Target already reached!")
         else:
-            print(f"🔄 Need {target - current_count:,} more addresses")
+            print(f"Need {target - current_count:,} more addresses")
             
     except FileNotFoundError:
-        print("❌ No checkpoint file found")
+        print("[ERROR] No checkpoint file found")
     except Exception as e:
-        print(f"❌ Error reading checkpoint: {e}")
+        print(f"[ERROR] Error reading checkpoint: {e}")
 
 if __name__ == "__main__":
     check_status()

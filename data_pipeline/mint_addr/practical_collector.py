@@ -11,7 +11,7 @@ import json
 import logging
 import os
 from datetime import datetime
-from scrape_mint_simple import SimpleMintScraper
+from data_pipeline.mint_addr.scrape_mint_simple import SimpleMintScraper
 
 # Configure logging
 logging.basicConfig(
@@ -39,31 +39,31 @@ class PracticalMintCollector:
     async def collect_with_realistic_targets(self):
         """Collect addresses with tiered, realistic targets."""
         
-        logger.info("🎯 Starting Practical Mint Address Collection")
+        logger.info("Starting Practical Mint Address Collection")
         logger.info("=" * 60)
         
         # Tier 1: Core sources (should get us to 500K-1M)
-        logger.info("📊 TIER 1: Core Sources (Target: 500K-1M addresses)")
+        logger.info("TIER 1: Core Sources (Target: 500K-1M addresses)")
         await self.run_core_collection()
         
         if len(self.collected_addresses) >= self.target_tiers['minimal']:
-            logger.info(f"✅ Tier 1 SUCCESS: {len(self.collected_addresses):,} addresses")
+            logger.info(f"[OK] Tier 1 SUCCESS: {len(self.collected_addresses):,} addresses")
         else:
-            logger.warning(f"⚠️  Tier 1 partial: {len(self.collected_addresses):,} addresses")
+            logger.warning(f"[WARN] Tier 1 partial: {len(self.collected_addresses):,} addresses")
         
         # Tier 2: Extended sources (should get us to 1M-2M)
         if len(self.collected_addresses) < self.target_tiers['excellent']:
-            logger.info("📊 TIER 2: Extended Collection (Target: 1M-2M addresses)")
+            logger.info("TIER 2: Extended Collection (Target: 1M-2M addresses)")
             await self.run_extended_collection()
             
             if len(self.collected_addresses) >= self.target_tiers['good']:
-                logger.info(f"✅ Tier 2 SUCCESS: {len(self.collected_addresses):,} addresses")
+                logger.info(f"[OK] Tier 2 SUCCESS: {len(self.collected_addresses):,} addresses")
             else:
-                logger.warning(f"⚠️  Tier 2 partial: {len(self.collected_addresses):,} addresses")
+                logger.warning(f"[WARN] Tier 2 partial: {len(self.collected_addresses):,} addresses")
         
         # Tier 3: Aggressive collection (stretch goal)
         if len(self.collected_addresses) < self.target_tiers['stretch']:
-            logger.info("📊 TIER 3: Aggressive Collection (Target: 2M-5M addresses)")
+            logger.info("TIER 3: Aggressive Collection (Target: 2M-5M addresses)")
             await self.run_aggressive_collection()
         
         await self.finalize_collection()
@@ -91,18 +91,18 @@ class PracticalMintCollector:
                 
                 for source_name, source_coro in core_sources:
                     try:
-                        logger.info(f"🔄 Collecting from {source_name}...")
+                        logger.info(f"Collecting from {source_name}...")
                         addresses = await asyncio.wait_for(source_coro, timeout=600)  # 10min timeout
                         new_addresses = addresses - self.collected_addresses
                         self.collected_addresses.update(new_addresses)
                         
-                        logger.info(f"✅ {source_name}: +{len(new_addresses):,} new | Total: {len(self.collected_addresses):,}")
-                        
+                        logger.info(f"[OK] {source_name}: +{len(new_addresses):,} new | Total: {len(self.collected_addresses):,}")
+
                         # Save progress
                         self.save_progress(f"after_{source_name.lower()}")
-                        
+
                     except Exception as e:
-                        logger.error(f"❌ {source_name} failed: {e}")
+                        logger.error(f"[ERROR] {source_name} failed: {e}")
                         continue
                         
         except Exception as e:
@@ -124,18 +124,18 @@ class PracticalMintCollector:
                 
                 for source_name, source_coro in extended_sources:
                     try:
-                        logger.info(f"🔄 Extended: {source_name}...")
+                        logger.info(f"Extended: {source_name}...")
                         addresses = await asyncio.wait_for(source_coro, timeout=900)  # 15min timeout
                         new_addresses = addresses - self.collected_addresses
                         self.collected_addresses.update(new_addresses)
                         
-                        logger.info(f"✅ {source_name}: +{len(new_addresses):,} new | Total: {len(self.collected_addresses):,}")
-                        
+                        logger.info(f"[OK] {source_name}: +{len(new_addresses):,} new | Total: {len(self.collected_addresses):,}")
+
                         # Save progress
                         self.save_progress(f"after_extended_{source_name.lower()}")
-                        
+
                     except Exception as e:
-                        logger.error(f"❌ Extended {source_name} failed: {e}")
+                        logger.error(f"[ERROR] Extended {source_name} failed: {e}")
                         continue
                         
         except Exception as e:
@@ -168,7 +168,7 @@ class PracticalMintCollector:
             with open(filename, 'w') as f:
                 json.dump(progress_data, f, indent=2)
                 
-            logger.info(f"💾 Progress saved: {filename}")
+            logger.info(f"Progress saved: {filename}")
             
         except Exception as e:
             logger.error(f"Error saving progress: {e}")
@@ -191,17 +191,17 @@ class PracticalMintCollector:
     
     async def finalize_collection(self):
         """Finalize and export the collection."""
-        logger.info("🎯 FINAL RESULTS")
+        logger.info("FINAL RESULTS")
         logger.info("=" * 60)
         
         tier_progress = self.get_tier_progress()
         
         for tier, data in tier_progress.items():
-            status = "✅ ACHIEVED" if data['achieved'] else f"📊 {data['percentage']:.1f}%"
+            status = "[DONE] ACHIEVED" if data['achieved'] else f"{data['percentage']:.1f}%"
             logger.info(f"{tier.upper():>10}: {data['target']:>8,} | {status}")
         
         logger.info("=" * 60)
-        logger.info(f"🎉 TOTAL COLLECTED: {len(self.collected_addresses):,} unique addresses")
+        logger.info(f"TOTAL COLLECTED: {len(self.collected_addresses):,} unique addresses")
         
         # Export final results
         self.export_final_results()
@@ -227,8 +227,8 @@ class PracticalMintCollector:
                 for addr in self.collected_addresses:
                     f.write(f"{addr}\n")
             
-            logger.info(f"📁 Exported: {csv_filename}")
-            logger.info(f"📁 Exported: {txt_filename}")
+            logger.info(f"Exported: {csv_filename}")
+            logger.info(f"Exported: {txt_filename}")
             
             # Summary JSON
             summary = {
@@ -241,7 +241,7 @@ class PracticalMintCollector:
             with open('collection_summary.json', 'w') as f:
                 json.dump(summary, f, indent=2)
             
-            logger.info("📁 Summary: collection_summary.json")
+            logger.info("Summary: collection_summary.json")
             
         except Exception as e:
             logger.error(f"Error exporting results: {e}")
