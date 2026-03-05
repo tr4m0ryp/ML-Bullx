@@ -1,21 +1,23 @@
 """
-Enhanced Token Classification Algorithm
+Enhanced Token Classification Algorithm for ML Training Data.
 
-The algorithm now distinguishes between 4 categories:
-1. SUCCESSFUL: Tokens that show sustained growth and community adoption
-   - Historical Success: Overrides all other factors if a token shows legendary historical performance (e.g., >1,000,000x recovery).
-   - Traditional success: 10x appreciation, 100+ holders, no major drops
-   - Recovery success: Strong recovery (3x+) after early drops with sustained growth
+Assigns one of four labels to each Solana token based on on-chain metrics:
+- SUCCESSFUL: Sustained growth, community adoption, or legendary recovery.
+  Includes traditional success (10x+, 100+ holders), recovery success
+  (5x+ bounce after 70%+ drop), and historical success (1000x+ appreciation).
+- RUGPULL: Coordinated dumps with no meaningful recovery. Requires prior
+  pump (5x+), liquidity removal signals, and 21+ days without bounce.
+- INACTIVE: Tokens that never exceeded 2x appreciation with fewer than
+  15 holders and minimal daily transactions.
+- UNSUCCESSFUL: Active tokens that fail to meet success criteria but
+  lack clear rugpull indicators.
 
-2. RUGPULL: Tokens with coordinated dumps or no recovery patterns, AND no signs of historical success.
+The ``EnhancedTokenLabeler`` class orchestrates data gathering from the
+on-chain pipeline, metric computation, and rule-based classification.
+It supports incremental CSV processing with resume-on-restart.
 
-3. INACTIVE: Tokens that never gained meaningful traction.
-
-4. UNSUCCESSFUL: Tokens that don't meet success criteria but aren't clear rugpulls.
-
-Key Improvements:
-- A new "Historical Success" category that prioritizes massive past performance.
-- Recovery-based success is now more lenient and not penalized by current price trends.
+Author: ML-Bullx Team
+Date: 2025-08-01
 """
 
 from __future__ import annotations
@@ -48,20 +50,29 @@ from on_chain_solana_pipeline.config.config_loader import load_config
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────── Enhanced TokenLabeler ───────────────────────
+# =============================================================================
+# Enhanced Token Labeler
+# =============================================================================
+
 class EnhancedTokenLabeler:
+    """Precision token classifier producing ML training labels from 72-hour data.
+
+    Applies strict, unambiguous rules to assign one of four labels:
+    - SUCCESSFUL: Proven sustained growth or strong recovery patterns.
+    - RUGPULL: Coordinated dumps with clear malicious intent.
+    - INACTIVE: Tokens that never gained meaningful traction.
+    - UNSUCCESSFUL: Active but insufficient performance for success label.
+
+    The class manages its own ``OnChainDataProvider`` lifecycle via async
+    context manager (``async with EnhancedTokenLabeler() as labeler``).
+
+    Attributes:
+        data_provider: On-chain data provider for Helius/RPC queries.
+        allow_insufficient_data: When False, tokens with missing metrics
+            receive an INSUFFICIENT_DATA label instead of a guess.
+        debug_mode: When True, enables verbose logging and failure tracking.
     """
-    Precision Token Classification Algorithm for ML Training Data
-    
-    Designed to create the highest quality dataset for ML prediction based on 72h data.
-    Each classification has strict, unambiguous criteria to minimize mislabeling.
-    
-    SUCCESSFUL: Tokens with proven sustained growth patterns
-    RUGPULL: Coordinated dumps with clear malicious intent  
-    INACTIVE: Tokens that never gained meaningful traction
-    UNSUCCESSFUL: Everything else (active but not successful enough)
-    """
-    
+
     # === CORE SUCCESS CRITERIA ===
     # Primary success: 72h breakthrough + sustainable growth
     SUCCESS_MIN_HOLDERS_PRIMARY = 50  # Minimum community size

@@ -1,25 +1,71 @@
 """
-Enhanced data collection patches for the token labeler.
-This module provides fixes for the data collection issues in the original system.
+Enhanced Data Collection Patches for the Token Labeler.
+
+Monkey-patches the original OnChainDataProvider with improved transaction
+analysis and history building:
+- Increased transaction analysis window (up to 1000 transactions).
+- Enhanced swap detection using multi-criteria heuristics.
+- Outlier removal for price data before OHLCV resampling.
+- Adaptive OHLCV timeframe selection (1-minute vs. 5-minute).
+- Automatic fallback calculation for missing volume, price, and
+  transaction-rate metrics.
+- Transparent caching with configurable TTL.
+
+Author: ML-Bullx Team
+Date: 2025-08-01
 """
 
-import logging
-from typing import Dict, Any, Optional, List
-from datetime import datetime, timedelta
-import pandas as pd
 import asyncio
-from data_pipeline.label.enhanced_parsing import enhanced_is_swap_transaction, enhanced_parse_swap_details, retry_with_exponential_backoff, log_parsing_failure
+import logging
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
+
+from data_pipeline.label.enhanced_parsing import (
+    enhanced_is_swap_transaction,
+    enhanced_parse_swap_details,
+    log_parsing_failure,
+    retry_with_exponential_backoff,
+)
 from data_pipeline.label.fallback_calculations import FallbackCalculations
 
 logger = logging.getLogger(__name__)
 
+
+# =============================================================================
+# Enhanced Data Collection
+# =============================================================================
+
 class EnhancedDataCollection:
-    """Enhanced data collection methods to patch the original OnChainDataProvider."""
-    
+    """Enhanced data collection methods to patch the original OnChainDataProvider.
+
+    All methods are static so they can be called without instantiation.
+    The class serves as a namespace grouping the enhanced analysis and
+    history-building logic that replaces the default implementations.
+    """
+
+    # -------------------------------------------------------------------------
+    # Token Activity Analysis
+    # -------------------------------------------------------------------------
+
     @staticmethod
     async def enhanced_analyze_token_activity(data_provider, mint: str) -> Optional[Dict[str, Any]]:
-        """
-        Enhanced version of _analyze_token_activity with better transaction parsing.
+        """Perform enhanced on-chain activity analysis for a token.
+
+        Fetches up to 1000 transaction signatures, parses each with
+        the enhanced swap detector, and builds a consolidated price
+        history.  Results are cached on the data provider.
+
+        Args:
+            data_provider: An instance of the original
+                OnChainDataProvider (or compatible object).
+            mint: SPL token mint address to analyze.
+
+        Returns:
+            Dictionary of historical analysis results including
+            OHLCV data, price summaries, and volume statistics,
+            or None if no price history can be constructed.
         """
         cache_key = f"activity_{mint}"
         if cache_key in data_provider._activity_cache:
@@ -28,7 +74,7 @@ class EnhancedDataCollection:
                 ttl = data_provider.config.cache.price_cache_ttl
             else:
                 ttl = 60  # Default TTL
-            
+
             if hasattr(data_provider, '_activity_cache') and data_provider._activity_cache:
                 import time
                 if time.time() - cached_at < ttl:
@@ -40,29 +86,29 @@ class EnhancedDataCollection:
         if not signatures:
             logger.info(f"No signatures found for {mint}")
             return None
-        
+
         all_swaps = []
         price_history = []
         batch_size = 20
-        
+
         # Analyze more transactions for better data
         max_tx = min(len(signatures), 1000)  # Increased from 500
-        
+
         logger.info(f"Analyzing {max_tx} transactions for {mint} in batches of {batch_size}")
         successful_parses = 0
         failed_parses = 0
         rate_limited = 0
-        
+
         for i in range(0, max_tx, batch_size):
             batch_sigs = signatures[i:i + batch_size]
-            
+
             # Use retry logic for transaction fetching
             async def fetch_batch():
                 tasks = [data_provider._get_transaction_details(sig) for sig in batch_sigs]
                 return await asyncio.gather(*tasks, return_exceptions=True)
-            
+
             transactions = await retry_with_exponential_backoff(fetch_batch)
-            
+
             for j, tx in enumerate(transactions):
                 if isinstance(tx, dict) and tx:
                     # Use enhanced swap detection
@@ -73,8 +119,8 @@ class EnhancedDataCollection:
                             all_swaps.append(swap_info)
                             if 'timestamp' in swap_info and 'price' in swap_info:
                                 price_history.append({
-                                    'timestamp': swap_info['timestamp'], 
-                                    'price': swap_info['price'], 
+                                    'timestamp': swap_info['timestamp'],
+                                    'price': swap_info['price'],
                                     'volume': swap_info.get('volume_usd', 0)
                                 })
                             successful_parses += 1
@@ -99,13 +145,13 @@ class EnhancedDataCollection:
                     # Log unknown failure
                     if j < len(batch_sigs):
                         log_parsing_failure(mint, batch_sigs[j], "unknown_failure")
-            
+
             # Shorter delay to reduce rate limiting impact
             await asyncio.sleep(0.2)
-        
+
         logger.info(f"Enhanced parsing results for {mint}: {successful_parses} successful, {failed_parses} failed, {rate_limited} rate-limited")
         logger.info(f"Collected {len(all_swaps)} swaps and {len(price_history)} price points for {mint}")
-        
+
         if not price_history:
             logger.warning(f"No price history could be built from swaps for {mint}")
             return None
@@ -113,41 +159,59 @@ class EnhancedDataCollection:
         # Use enhanced history building
         analysis = EnhancedDataCollection.enhanced_build_history_from_swaps(price_history, mint)
         logger.info(f"Built enhanced historical analysis for {mint}: {list(analysis.keys())}")
-        
+
         # Cache the result
         if hasattr(data_provider, '_activity_cache'):
             import time
             data_provider._activity_cache[cache_key] = (analysis, time.time())
-        
+
         return analysis
-    
+
+    # -------------------------------------------------------------------------
+    # History Building from Swap Data
+    # -------------------------------------------------------------------------
+
     @staticmethod
     def enhanced_build_history_from_swaps(price_history: List[Dict[str, Any]], mint: str) -> Dict[str, Any]:
-        """
-        Enhanced version of _build_history_from_swaps with better data handling.
+        """Build consolidated historical analysis from raw price points.
+
+        Performs outlier removal, adaptive OHLCV resampling (1-minute
+        or 5-minute depending on data density), and applies fallback
+        calculations for any metrics that remain missing.
+
+        Args:
+            price_history: List of dictionaries with ``timestamp``
+                (Unix epoch), ``price`` (float), and ``volume`` (float).
+            mint: Token mint address, used for log context.
+
+        Returns:
+            Dictionary containing OHLCV records, price summaries
+            (launch, peak, current, ATH), volume statistics, and
+            data quality indicators.  Returns an empty dictionary
+            if no usable data remains after processing.
         """
         logger.debug(f"Enhanced _build_history_from_swaps for {mint}: Received {len(price_history)} price points.")
         if not price_history:
             logger.debug(f"Enhanced _build_history_from_swaps for {mint}: price_history is empty.")
             return {}
-        
+
         df = pd.DataFrame(price_history)
         df['datetime'] = pd.to_datetime(df['timestamp'], unit='s')
         df.sort_values('datetime', inplace=True)
         logger.debug(f"Enhanced _build_history_from_swaps for {mint}: DataFrame shape: {df.shape}")
-        
+
         # Remove obvious outliers (prices that are 100x different from median)
         if len(df) > 3:
             median_price = df['price'].median()
             df = df[df['price'] <= median_price * 100]  # Remove extreme outliers
             df = df[df['price'] >= median_price / 100]  # Remove extreme low prices
             logger.debug(f"After outlier removal: {len(df)} price points remain")
-        
+
         # Enhanced OHLCV resampling with multiple timeframes
         # Start with 1-minute, then 5-minute for sparse data
         ohlcv_1min = df.set_index('datetime')['price'].resample('1min').ohlc().dropna()
         volume_1min = df.set_index('datetime')['volume'].resample('1min').sum().dropna()
-        
+
         if len(ohlcv_1min) < 10:  # If very sparse, use 5-minute
             ohlcv = df.set_index('datetime')['price'].resample('5min').ohlc().dropna()
             volume = df.set_index('datetime')['volume'].resample('5min').sum().dropna()
@@ -156,42 +220,42 @@ class EnhancedDataCollection:
             ohlcv = ohlcv_1min
             volume = volume_1min
             logger.debug(f"Using 1-minute OHLCV: {len(ohlcv)} records")
-        
+
         if ohlcv.empty:
             logger.warning(f"No OHLCV data after resampling for {mint}")
             return {}
-        
+
         ohlcv = ohlcv.join(volume, how='left').fillna(0)
         ohlcv.rename(columns={'volume': 'v', 'open': 'o', 'high': 'h', 'low': 'l', 'close': 'c'}, inplace=True)
         ohlcv['ts'] = ohlcv.index.astype(int) // 10**9
-        
+
         logger.debug(f"Enhanced _build_history_from_swaps for {mint}: Final OHLCV shape: {ohlcv.shape}")
-        
+
         launch_time = df['datetime'].min()
         hours_72_cutoff = launch_time + timedelta(hours=72)
-        
+
         early_df = df[df['datetime'] <= hours_72_cutoff]
         post_df = df[df['datetime'] > hours_72_cutoff]
         logger.debug(f"Enhanced _build_history_from_swaps for {mint}: early_df: {len(early_df)}, post_df: {len(post_df)}")
-        
+
         # Enhanced price calculations
         all_time_high = df['price'].max() if not df.empty else None
         all_time_low = df['price'].min() if not df.empty else None
-        
+
         # More accurate launch price (use first few transactions average)
         launch_price = df['price'].head(5).mean() if len(df) >= 5 else df['price'].iloc[0] if not df.empty else None
-        
+
         # Peak price within 72h of launch
         peak_price_72h = early_df['price'].max() if not early_df.empty else None
-        
+
         # Current price (last transaction)
         current_price = df['price'].iloc[-1] if not df.empty else None
-        
+
         # Enhanced volume calculations
         total_volume = df['volume'].sum()
         volume_24h = df[df['datetime'] >= datetime.now() - timedelta(hours=24)]['volume'].sum()
         avg_daily_volume = total_volume / max((df['datetime'].max() - df['datetime'].min()).days, 1) if len(df) > 1 else total_volume
-        
+
         result = {
             'ohlcv': ohlcv.reset_index().to_dict('records'),
             'launch_price': launch_price,
@@ -207,8 +271,8 @@ class EnhancedDataCollection:
             'price_range_ratio': (all_time_high / all_time_low) if all_time_low and all_time_low > 0 else None,
             'days_active': (df['datetime'].max() - df['datetime'].min()).days if len(df) > 1 else 0
         }
-        
-        # Apply fallback calculations for missing data
+
+        # Build swap data list for fallback calculations
         swap_data = []
         for _, row in df.iterrows():
             swap_data.append({
@@ -216,57 +280,71 @@ class EnhancedDataCollection:
                 'price': row['price'],
                 'volume_usd': row.get('volume', 0)
             })
-        
-        # Fallback calculations for critical missing metrics
+
+        # ---- Apply fallback calculations for critical missing metrics ----
+
         if not result.get('volume_24h'):
             fallback_24h = FallbackCalculations.calculate_volume_24h_from_swaps(swap_data)
             if fallback_24h:
                 result['volume_24h'] = fallback_24h
                 logger.info(f"Applied fallback 24h volume: ${fallback_24h:.2f}")
-        
+
         if not result.get('launch_price'):
             fallback_launch = FallbackCalculations.detect_launch_price(swap_data, ohlcv.to_dict('records'))
             if fallback_launch:
                 result['launch_price'] = fallback_launch
                 logger.info(f"Applied fallback launch price: ${fallback_launch:.8f}")
-        
+
         # Add accurate price points count
         price_points_count = FallbackCalculations.count_price_points(swap_data, ohlcv.to_dict('records'))
         result['price_points_count'] = price_points_count
         logger.debug(f"Counted {price_points_count} price data points")
-        
+
         # Enhanced historical average volume calculation
         if not result.get('avg_daily_volume') or result.get('avg_daily_volume', 0) == 0:
             fallback_historical_avg = FallbackCalculations.calculate_historical_avg_volume(swap_data)
             if fallback_historical_avg:
                 result['historical_avg_volume'] = fallback_historical_avg
                 logger.info(f"Applied fallback historical avg volume: ${fallback_historical_avg:.2f}")
-        
-        # Enhanced peak volume calculation  
+
+        # Enhanced peak volume calculation
         if not result.get('peak_volume'):
             fallback_peak_vol = FallbackCalculations.calculate_peak_volume(swap_data, ohlcv.to_dict('records'))
             if fallback_peak_vol:
                 result['peak_volume'] = fallback_peak_vol
                 logger.info(f"Applied fallback peak volume: ${fallback_peak_vol:.2f}")
-        
+
         # Transaction rate calculation
         fallback_tx_rate = FallbackCalculations.calculate_transaction_rate(swap_data)
         if fallback_tx_rate:
             result['transaction_rate_daily'] = fallback_tx_rate
             logger.debug(f"Calculated transaction rate: {fallback_tx_rate:.2f} tx/day")
-        
+
         logger.debug(f"Enhanced _build_history_from_swaps for {mint}: Returning enhanced result with {len(result)} fields")
         return result
 
+
+# =============================================================================
+# Monkey Patching
+# =============================================================================
+
 def monkey_patch_data_provider(data_provider):
-    """
-    Apply monkey patches to enhance data collection.
+    """Replace the data provider's analysis method with the enhanced version.
+
+    Stores the original ``_analyze_token_activity`` method as
+    ``_original_analyze_token_activity`` for fallback, then installs a
+    wrapper that tries the enhanced path first and reverts to the
+    original on failure.
+
+    Args:
+        data_provider: An instance of the original
+            OnChainDataProvider to patch in-place.
     """
     logger.info("Applying enhanced data collection patches...")
-    
+
     # Store original method for fallback
     data_provider._original_analyze_token_activity = data_provider._analyze_token_activity
-    
+
     # Replace with enhanced version
     async def patched_analyze_token_activity(mint: str) -> Optional[Dict[str, Any]]:
         try:
@@ -280,6 +358,6 @@ def monkey_patch_data_provider(data_provider):
         except Exception as e:
             logger.error(f"Enhanced analysis error for {mint}: {e}, falling back to original")
             return await data_provider._original_analyze_token_activity(mint)
-    
+
     data_provider._analyze_token_activity = patched_analyze_token_activity
     logger.info("Enhanced data collection patches applied successfully")

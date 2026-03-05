@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 """
-Enhanced Token Labeling with Incremental CSV Saving
+Incremental Token Labeling Runner with CSV Persistence.
 
-Saves results incrementally to CSV and can resume from existing progress.
+Orchestrates the enhanced token labeling pipeline with support for
+incremental progress saving and resumption:
+- Reads mint addresses from an input CSV file.
+- Processes tokens in configurable batch sizes.
+- Saves results incrementally to the output CSV after each batch.
+- Supports resuming from existing progress or resetting completely.
+- Prints a final label distribution summary on completion.
 
 Usage:
     python run_incremental_labeling.py <input_csv> <output_csv> [--batch-size N] [--reset]
@@ -10,21 +16,33 @@ Usage:
 Examples:
     python run_incremental_labeling.py input.csv output.csv --batch-size 10
     python run_incremental_labeling.py input.csv output.csv --batch-size 10 --reset
+
+Author: ML-Bullx Team
+Date: 2025-08-01
 """
 
-import asyncio
 import argparse
+import asyncio
 import logging
-import sys
 import os
+import sys
 from pathlib import Path
+
 import pandas as pd
 
-# Import the enhanced token labeler
 from data_pipeline.label.token_labeler import EnhancedTokenLabeler
 
+
+# =============================================================================
+# Logging Setup
+# =============================================================================
+
 def setup_logging():
-    """Setup logging with both file and console output."""
+    """Configure logging with both file and console handlers.
+
+    Writes INFO-level messages to ``incremental_labeling.log`` and
+    to standard error simultaneously.
+    """
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
@@ -34,8 +52,23 @@ def setup_logging():
         ]
     )
 
+
+# =============================================================================
+# Main Entry Point
+# =============================================================================
+
 async def main():
-    """Main function to run incremental token labeling."""
+    """Parse CLI arguments and execute the incremental labeling pipeline.
+
+    Supports the following flags:
+        --batch-size   Number of tokens per processing batch (default 10).
+        --config       Optional path to a YAML/JSON config file.
+        --reset        Discard existing progress and start fresh.
+        --allow-insufficient  Coerce partial data into labels instead of
+                              using the INSUFFICIENT_DATA label.
+        --limit        Cap the number of tokens processed (debugging).
+        --debug        Enable DEBUG-level logging and failure tracking.
+    """
     parser = argparse.ArgumentParser(description="Run incremental token labeling")
     parser.add_argument("input_csv", help="Input CSV file with mint addresses")
     parser.add_argument("output_csv", help="Output CSV file for labeled tokens")
@@ -45,17 +78,17 @@ async def main():
     parser.add_argument("--allow-insufficient", action="store_true", help="Allow coercing partial data into labels (default: use INSUFFICIENT_DATA label)")
     parser.add_argument("--limit", type=int, help="Limit number of tokens to process (for debugging)")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging and failure tracking")
-    
+
     args = parser.parse_args()
-    
+
     # Validate input file exists
     if not Path(args.input_csv).exists():
         print(f"Error: Input file '{args.input_csv}' not found")
         sys.exit(1)
-    
+
     setup_logging()
     logger = logging.getLogger(__name__)
-    
+
     logger.info("=" * 80)
     logger.info("ENHANCED TOKEN LABELING")
     logger.info("=" * 80)
@@ -75,7 +108,7 @@ async def main():
     if args.debug:
         logger.info("DEBUG MODE: Enhanced logging and failure tracking enabled")
     logger.info("=" * 80)
-    
+
     try:
         # Initialize the enhanced token labeler
         async with EnhancedTokenLabeler(config_path=args.config) as labeler:
@@ -87,11 +120,11 @@ async def main():
                 if stats["remaining"] == 0:
                     logger.info("All tokens have already been processed.")
                     return
-            
+
             # Set labeler options based on args
             labeler.allow_insufficient_data = args.allow_insufficient
             labeler.debug_mode = args.debug
-            
+
             # Run the labeling process with incremental saving
             await labeler.label_tokens_from_csv(
                 inp=args.input_csv,
@@ -100,7 +133,7 @@ async def main():
                 reset_progress=args.reset,
                 limit=args.limit
             )
-            
+
             # Load the final results from the CSV for the report
             if os.path.exists(args.output_csv):
                 try:
@@ -109,7 +142,7 @@ async def main():
                     result_df = pd.DataFrame(columns=['mint_address', 'label'])
             else:
                 result_df = pd.DataFrame(columns=['mint_address', 'label'])
-            
+
             # Final summary
             final_stats = labeler.get_processing_stats(args.input_csv, args.output_csv)
             logger.info("=" * 80)
@@ -126,7 +159,7 @@ async def main():
                     percentage = (count / len(result_df)) * 100
                     logger.info(f"   {label}: {count} ({percentage:.1f}%)")
             logger.info("=" * 80)
-    
+
     except KeyboardInterrupt:
         logger.info("Process interrupted by user. Progress has been saved.")
         logger.info("To resume, run the same command again: %s", ' '.join(sys.argv))
@@ -134,6 +167,7 @@ async def main():
         logger.error("Error during processing: %s", e)
         logger.info("Check the log file for detailed error information.")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

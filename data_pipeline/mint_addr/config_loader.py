@@ -1,22 +1,46 @@
 #!/usr/bin/env python3
 """
-Configuration loader for the Solana mint address scraper.
+Configuration Loader for the Solana Mint Address Scraper.
+
+Handles loading and providing configuration for the mint address collection pipeline:
+- Parses YAML configuration files with fallback to sensible defaults.
+- Provides default RPC endpoints, API source URLs, and rate limit settings.
+- Computes age-based cutoff dates for token filtering (3-12 months).
+- Supplies output filenames and logging format configuration.
+
+Author: ML-Bullx Team
+Date: 2025-08-01
 """
 
-import yaml
+# ============================================================================
+# Standard Library Imports
+# ============================================================================
 import os
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Any, Dict
+
+# ============================================================================
+# Third-Party Imports
+# ============================================================================
+import yaml
+
+
+# ============================================================================
+# Configuration Loading
+# ============================================================================
 
 def load_config(config_path: str = "config.yaml") -> Dict[str, Any]:
-    """
-    Load configuration from YAML file.
-    
+    """Load configuration from a YAML file.
+
+    Attempts to read and parse the specified YAML configuration file. If the
+    file does not exist or an error occurs during parsing, returns the default
+    configuration instead.
+
     Args:
-        config_path: Path to the configuration file
-        
+        config_path: Filesystem path to the YAML configuration file.
+
     Returns:
-        Configuration dictionary
+        A dictionary containing all configuration key-value pairs.
     """
     try:
         if os.path.exists(config_path):
@@ -30,8 +54,21 @@ def load_config(config_path: str = "config.yaml") -> Dict[str, Any]:
         print(f"Error loading config: {e}")
         return get_default_config()
 
+
+# ============================================================================
+# Default Configuration
+# ============================================================================
+
 def get_default_config() -> Dict[str, Any]:
-    """Get default configuration."""
+    """Build and return the default configuration dictionary.
+
+    Provides sensible defaults for every configuration parameter the scraper
+    requires, including target count, age range, RPC endpoints, API sources,
+    rate limits, output filenames, and logging settings.
+
+    Returns:
+        A dictionary containing all default configuration values.
+    """
     return {
         'target_mint_count': 100000,
         'min_months_ago': 3,
@@ -69,29 +106,44 @@ def get_default_config() -> Dict[str, Any]:
         }
     }
 
+
+# ============================================================================
+# Age Cutoff Computation
+# ============================================================================
+
 def get_age_cutoffs(config: Dict[str, Any]) -> tuple:
-    """
-    Calculate age cutoff dates from configuration.
-    
+    """Calculate age cutoff dates from configuration parameters.
+
+    Converts the configured month-based age range into concrete datetime
+    boundaries used for filtering tokens by creation date.
+
     Args:
-        config: Configuration dictionary
-        
+        config: Configuration dictionary containing 'min_months_ago' and
+            'max_months_ago' keys.
+
     Returns:
-        Tuple of (min_cutoff_date, max_cutoff_date)
+        A tuple of (min_cutoff_date, max_cutoff_date) where min_cutoff_date
+        is the oldest allowed creation date and max_cutoff_date is the newest
+        allowed creation date.
     """
     min_months = config.get('min_months_ago', 3)
     max_months = config.get('max_months_ago', 12)
-    
+
     min_cutoff_date = datetime.now() - timedelta(days=max_months * 30)  # Oldest allowed
     max_cutoff_date = datetime.now() - timedelta(days=min_months * 30)  # Newest allowed
-    
+
     return min_cutoff_date, max_cutoff_date
+
+
+# ============================================================================
+# Script Entry Point
+# ============================================================================
 
 if __name__ == "__main__":
     # Test the configuration loader
     config = load_config()
     min_date, max_date = get_age_cutoffs(config)
-    
+
     print("Configuration loaded successfully!")
     print(f"Target count: {config['target_mint_count']}")
     print(f"Age range: {min_date.strftime('%Y-%m-%d')} to {max_date.strftime('%Y-%m-%d')}")

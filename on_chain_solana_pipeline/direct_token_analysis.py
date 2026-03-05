@@ -1,23 +1,40 @@
 #!/usr/bin/env python3
 """
-Simple direct test for token 5fr1bB2Tz6ywjoFc9K1VoX3ukGHP6xPUD5bFU4nX1Zs9
+Direct token classification test demonstrating the enhanced algorithm.
+
+- Prints a walkthrough of possible classification outcomes for a
+  specific target token address.
+- Illustrates how the enhanced algorithm handles recovery-aware
+  classification, time-sensitive drop analysis, coordinated dump
+  detection, and trend awareness.
+- Does not make any API calls; all output is illustrative.
+
+Author: ML-Bullx Team
+Date:   2025-08-01
 """
 
+# ==============================================================================
+# Constants
+# ==============================================================================
 TARGET_TOKEN = "5fr1bB2Tz6ywjoFc9K1VoX3ukGHP6xPUD5bFU4nX1Zs9"
 
+
+# ==============================================================================
+# Main
+# ==============================================================================
 def main():
+    """Print an illustrative classification analysis for the target token."""
     print("Enhanced Token Classification Test")
     print("=" * 60)
     print(f"Target Token: {TARGET_TOKEN}")
     print("=" * 60)
 
     # Based on the enhanced algorithm and typical token patterns,
-    # I'll demonstrate the classification logic
+    # demonstrate the classification logic with example scenarios.
 
     print("\nENHANCED ALGORITHM ANALYSIS:")
     print("=" * 40)
 
-    # Simulate different scenarios this token could fall into
     scenarios = [
         {
             "name": "Scenario 1: Early Drop + Recovery Success",

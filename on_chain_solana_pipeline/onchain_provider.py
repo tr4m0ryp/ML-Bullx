@@ -1,65 +1,115 @@
 """
-On-chain Solana data provider with multiple API key support.
+On-chain Solana data provider with multi-key Helius API support.
+
+- Fetches current price, historical OHLCV, holder counts, and
+  transaction counts for SPL tokens directly from the Solana
+  blockchain via Helius RPC and a local TimescaleDB.
+- Supports automatic API key rotation through the shared
+  ``HeliusAPIKeyManager`` singleton.
+- Falls back to on-chain transaction analysis (swap parsing) and
+  external price APIs (Jupiter) when database records are unavailable.
+- Maintains in-memory caches for prices, holder counts, and token
+  activity data with configurable TTLs.
+
+Author: ML-Bullx Team
+Date:   2025-08-01
 """
+
+# ==============================================================================
+# Standard library imports
+# ==============================================================================
 from __future__ import annotations
 
 import asyncio
-import aiohttp
+import json
 import logging
-import time
 import sys
 import os
-from typing import Dict, List, Optional, Tuple, Any
+import time
 from datetime import datetime, timedelta
-from dataclasses import dataclass
-import json
+from typing import Any, Dict, List, Optional, Tuple
+
+# ==============================================================================
+# Third-party imports
+# ==============================================================================
+import aiohttp
 import base58
 import pandas as pd
+from dataclasses import dataclass
 
+# ==============================================================================
+# Local imports
+# ==============================================================================
 from on_chain_solana_pipeline.api_key_manager import get_key_manager
 from on_chain_solana_pipeline.config.config_loader import load_config, PipelineConfig
 
 logger = logging.getLogger(__name__)
 
 
+# ==============================================================================
+# Data structures
+# ==============================================================================
 @dataclass
 class PriceData:
-    price: float
-    volume_24h: float
-    market_cap: Optional[float] = None
-    timestamp: datetime = None
+    """Snapshot of a token's current market price and volume."""
+
+    price: float                          # Current token price in USD
+    volume_24h: float                     # 24-hour trading volume in USD
+    market_cap: Optional[float] = None    # Market capitalisation in USD
+    timestamp: datetime = None            # Time the price was observed
 
 
-@dataclass 
+@dataclass
 class HistoricalData:
-    ohlcv: List[Dict[str, Any]]  # List of {ts, o, h, l, c, v}
-    launch_price: Optional[float] = None
-    peak_price_72h: Optional[float] = None
-    post_ath_peak_price: Optional[float] = None
+    """Historical OHLCV candles and key price milestones."""
+
+    ohlcv: List[Dict[str, Any]]                     # List of {ts, o, h, l, c, v} candles
+    launch_price: Optional[float] = None             # Price at first observed trade
+    peak_price_72h: Optional[float] = None           # Highest price within 72 h of launch
+    post_ath_peak_price: Optional[float] = None      # All-time high price
 
 
+# ==============================================================================
+# Provider class
+# ==============================================================================
 class OnChainDataProvider:
+    """Provides token data from Solana blockchain and local TimescaleDB.
+
+    Combines Helius RPC calls, local database queries, on-chain swap
+    analysis, and external API fallbacks into a single high-level
+    interface.  Multiple Helius API keys are rotated automatically via
+    the shared ``HeliusAPIKeyManager``.
+
+    Attributes:
+        config: Pipeline configuration (RPC URLs, DB DSN, cache TTLs).
+        key_manager: Shared Helius API key manager instance.
     """
-    Provides token data directly from Solana blockchain and local TimescaleDB.
-    Now supports multiple Helius API keys with automatic rotation and direct
-    on-chain transaction analysis.
-    """
-    
+
     def __init__(self, config: PipelineConfig):
+        """Initialise the provider with the given pipeline configuration.
+
+        Args:
+            config: A ``PipelineConfig`` containing RPC, database,
+                program-address, and cache settings.
+        """
         self.config = config
         self.rpc_client = None
         self.db_pool = None
         self.session: Optional[aiohttp.ClientSession] = None
         self.key_manager = get_key_manager()
-        
+
         for key in config.rpc.helius_keys:
             self.key_manager.add_key(key)
-        
+
         self._price_cache: Dict[str, Tuple[PriceData, float]] = {}
         self._holder_cache: Dict[str, Tuple[int, float]] = {}
         self._activity_cache: Dict[str, Tuple[Dict[str, Any], float]] = {}
 
+    # ------------------------------------------------------------------
+    # Async context manager
+    # ------------------------------------------------------------------
     async def __aenter__(self):
+        """Set up the Solana RPC client, database pool, and HTTP session."""
         try:
             from solana.rpc.async_api import AsyncClient
             helius_key = self.key_manager.get_next_available_key()
@@ -72,7 +122,7 @@ class OnChainDataProvider:
                 logger.warning("No Helius keys available, using public RPC")
         except ImportError:
             logger.warning("solana package not installed. RPC features will be limited.")
-        
+
         self.db_pool = None
         try:
             import asyncpg
@@ -84,35 +134,50 @@ class OnChainDataProvider:
         except Exception as e:
             logger.error(f"Failed to create database pool: {e}")
             self.db_pool = None
-        
+
         logger.info("Creating HTTP session...")
         self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30))
         logger.info("OnChainDataProvider initialization complete")
         return self
-    
+
     async def __aexit__(self, *exc):
+        """Tear down the RPC client, database pool, and HTTP session."""
         if self.rpc_client:
             await self.rpc_client.close()
         if self.db_pool:
             await self.db_pool.close()
         if self.session:
             await self.session.close()
-    
+
+    # ------------------------------------------------------------------
+    # Helius RPC helper
+    # ------------------------------------------------------------------
     async def _make_helius_request(self, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Send a JSON-RPC request to Helius with automatic key rotation.
+
+        Waits up to 30 seconds for an available key and records success
+        or failure against the key manager.
+
+        Args:
+            payload: The JSON-RPC request body.
+
+        Returns:
+            The parsed JSON response dict, or None on failure.
+        """
         api_key = await self.key_manager.wait_for_available_key(max_wait_time=30)
         if not api_key:
             logger.error("No Helius API keys available")
             return None
-        
+
         url = f"{self.config.rpc.helius_url}/?api-key={api_key}"
-        
+
         try:
             async with self.session.post(url, json=payload) as response:
                 if response.status == 429:
                     self.key_manager.record_request_failure(api_key, is_rate_limit=True)
                     logger.warning(f"Helius API key rate limited: {api_key[:8]}...")
                     return None
-                
+
                 if response.status == 200:
                     self.key_manager.record_request_success(api_key)
                     return await response.json()
@@ -120,22 +185,36 @@ class OnChainDataProvider:
                     self.key_manager.record_request_failure(api_key)
                     logger.warning(f"Helius API error {response.status}")
                     return None
-                    
+
         except Exception as e:
             self.key_manager.record_request_failure(api_key)
             logger.error(f"Error making Helius request: {e}")
             return None
 
+    # ------------------------------------------------------------------
+    # Price data
+    # ------------------------------------------------------------------
     async def get_current_price(self, mint: str) -> Optional[PriceData]:
+        """Fetch the current price for a token.
+
+        Resolution order: in-memory cache, TimescaleDB, on-chain swap
+        analysis, external Jupiter API.
+
+        Args:
+            mint: The SPL token mint address.
+
+        Returns:
+            A ``PriceData`` instance, or None if no price could be found.
+        """
         logger.info(f"Getting current price for {mint}")
-        
+
         cache_key = f"price_{mint}"
         if cache_key in self._price_cache:
             data, cached_at = self._price_cache[cache_key]
             if time.time() - cached_at < self.config.cache.price_cache_ttl:
                 logger.info(f"Returning cached price for {mint}")
                 return data
-        
+
         if self.db_pool:
             async with self.db_pool.acquire() as conn:
                 latest_tick = await conn.fetchrow("SELECT price, volume_usd, ts FROM swap_ticks WHERE mint = $1 ORDER BY ts DESC LIMIT 1", mint)
@@ -145,7 +224,7 @@ class OnChainDataProvider:
                     self._price_cache[cache_key] = (price_data, time.time())
                     logger.info(f"Found database price for {mint}: ${price_data.price}")
                     return price_data
-        
+
         logger.info(f"No database price for {mint}, analyzing transactions directly.")
         activity_data = await self._analyze_token_activity(mint)
         if activity_data and activity_data.get('current_price'):
@@ -162,11 +241,23 @@ class OnChainDataProvider:
         if price_data:
             self._price_cache[cache_key] = (price_data, time.time())
             return price_data
-        
+
         logger.warning(f"No price data found for {mint}")
         return None
 
+    # ------------------------------------------------------------------
+    # Historical data
+    # ------------------------------------------------------------------
     async def get_historical_data(self, mint: str, days: int = 17) -> Optional[HistoricalData]:
+        """Fetch OHLCV candles and price milestones for a token.
+
+        Args:
+            mint: The SPL token mint address.
+            days: Number of days of history to retrieve.
+
+        Returns:
+            A ``HistoricalData`` instance, or None if no history is available.
+        """
         if self.db_pool:
             async with self.db_pool.acquire() as conn:
                 ohlcv_data = await conn.fetch(f"""
@@ -175,8 +266,8 @@ class OnChainDataProvider:
                     ORDER BY bucket ASC
                 """, mint)
                 if ohlcv_data:
-                    # ... (code to process DB ohlcv data)
-                    pass # Placeholder for original logic
+                    # Placeholder for original processing logic
+                    pass
 
         logger.info(f"No database history for {mint}, analyzing transactions directly.")
         activity_data = await self._analyze_token_activity(mint)
@@ -186,24 +277,38 @@ class OnChainDataProvider:
                 peak_price_72h=activity_data.get('peak_price_72h'),
                 post_ath_peak_price=activity_data.get('post_ath_peak_price')
             )
-        
+
         logger.warning(f"Could not build historical data for {mint}")
         return None
 
+    # ------------------------------------------------------------------
+    # Holder count
+    # ------------------------------------------------------------------
     async def get_holder_count(self, mint: str) -> Optional[int]:
+        """Return the number of unique holders for a token.
+
+        Checks the in-memory cache, then the database, and finally
+        falls back to a ``getProgramAccounts`` RPC call.
+
+        Args:
+            mint: The SPL token mint address.
+
+        Returns:
+            The holder count, or None if it could not be determined.
+        """
         cache_key = f"holders_{mint}"
         if cache_key in self._holder_cache:
             count, cached_at = self._holder_cache[cache_key]
             if time.time() - cached_at < self.config.cache.holder_cache_ttl:
                 return count
-        
+
         if self.db_pool:
             async with self.db_pool.acquire() as conn:
                 recent_snapshot = await conn.fetchval("SELECT holder_count FROM holder_snapshots WHERE mint = $1 ORDER BY snapshot_time DESC LIMIT 1", mint)
                 if recent_snapshot:
                     self._holder_cache[cache_key] = (recent_snapshot, time.time())
                     return recent_snapshot
-        
+
         holder_count = await self._get_holders_via_program_accounts(mint)
         if holder_count is not None:
             self._holder_cache[cache_key] = (holder_count, time.time())
@@ -215,34 +320,59 @@ class OnChainDataProvider:
                     logger.debug(f"Failed to store holder snapshot for {mint}: {e}")
         return holder_count
 
+    # ------------------------------------------------------------------
+    # Transaction count
+    # ------------------------------------------------------------------
     async def get_transaction_count(self, mint: str) -> Optional[int]:
-        """Get transaction count for a token using getSignaturesForAddress API."""
+        """Get the total transaction count for a token.
+
+        Uses ``getSignaturesForAddress`` with full pagination to collect
+        every known signature for the mint address.
+
+        Args:
+            mint: The SPL token mint address.
+
+        Returns:
+            The number of transactions, or None on failure.
+        """
         cache_key = f"tx_count_{mint}"
-        if cache_key in self._holder_cache:  # Reuse holder cache for tx counts
+        if cache_key in self._holder_cache:
             count, cached_at = self._holder_cache[cache_key]
             if time.time() - cached_at < self.config.cache.holder_cache_ttl:
                 return count
-        
+
         logger.info(f"Getting transaction count for: {mint}")
         try:
-            # Get all signatures for this mint address
             signatures = await self._get_signatures_for_address(mint, get_all=True)
             if signatures is None:
                 logger.warning(f"Could not get signatures for {mint}")
                 return None
-            
+
             transaction_count = len(signatures)
             logger.info(f"Found {transaction_count} transactions for {mint}")
-            
-            # Cache the result
+
             self._holder_cache[cache_key] = (transaction_count, time.time())
             return transaction_count
-            
+
         except Exception as e:
             logger.error(f"Error getting transaction count for {mint}: {e}")
             return None
 
+    # ------------------------------------------------------------------
+    # Internal: holder count via getProgramAccounts
+    # ------------------------------------------------------------------
     async def _get_holders_via_program_accounts(self, mint: str) -> Optional[int]:
+        """Query holder count using the ``getProgramAccounts`` RPC method.
+
+        Filters token accounts by mint and counts unique owners with a
+        non-zero balance.
+
+        Args:
+            mint: The SPL token mint address.
+
+        Returns:
+            The number of unique holders, or None on failure.
+        """
         logger.info(f"Attempting to get holder count for: {mint} via getProgramAccounts")
         try:
             payload = {
@@ -269,7 +399,24 @@ class OnChainDataProvider:
             logger.error(f"Error in getProgramAccounts for {mint}: {e}")
             return None
 
+    # ------------------------------------------------------------------
+    # Internal: on-chain swap activity analysis
+    # ------------------------------------------------------------------
     async def _analyze_token_activity(self, mint: str) -> Optional[Dict[str, Any]]:
+        """Perform full on-chain activity analysis for a token.
+
+        Fetches transaction signatures, retrieves individual transaction
+        details in batches, identifies swap transactions, and builds a
+        price history from the extracted swap data.
+
+        Args:
+            mint: The SPL token mint address.
+
+        Returns:
+            A dict containing ``ohlcv``, ``current_price``,
+            ``volume_24h``, ``peak_price_72h``, and
+            ``post_ath_peak_price`` keys, or None when no data is found.
+        """
         cache_key = f"activity_{mint}"
         if cache_key in self._activity_cache:
             data, cached_at = self._activity_cache[cache_key]
@@ -282,7 +429,7 @@ class OnChainDataProvider:
         if not signatures:
             logger.info(f"No signatures found for {mint}")
             return None
-        
+
         all_swaps = []
         price_history = []
         batch_size = 20
@@ -293,7 +440,7 @@ class OnChainDataProvider:
             batch_sigs = signatures[i:i + batch_size]
             tasks = [self._get_transaction_details(sig) for sig in batch_sigs]
             transactions = await asyncio.gather(*tasks, return_exceptions=True)
-            
+
             for tx in transactions:
                 if isinstance(tx, dict) and tx and self._is_swap_transaction(tx):
                     swap_info = self._parse_swap_details(tx, mint)
@@ -302,7 +449,7 @@ class OnChainDataProvider:
                         if 'timestamp' in swap_info and 'price' in swap_info:
                             price_history.append({'timestamp': swap_info['timestamp'], 'price': swap_info['price'], 'volume': swap_info.get('volume_usd', 0)})
             await asyncio.sleep(0.3)
-        
+
         logger.info(f"Collected {len(all_swaps)} swaps and {len(price_history)} price points for {mint}")
         if not price_history:
             logger.warning(f"No price history could be built from swaps for {mint}")
@@ -313,62 +460,111 @@ class OnChainDataProvider:
         self._activity_cache[cache_key] = (analysis, time.time())
         return analysis
 
+    # ------------------------------------------------------------------
+    # Internal: signature pagination
+    # ------------------------------------------------------------------
     async def _get_signatures_for_address(self, mint: str, limit: int = 1000, get_all: bool = True) -> List[str]:
+        """Paginate through ``getSignaturesForAddress`` to collect signatures.
+
+        Args:
+            mint: The Solana address to query.
+            limit: Maximum signatures per RPC call (capped at 1000).
+            get_all: When True, continue paginating until exhausted.
+
+        Returns:
+            A list of transaction signature strings.
+        """
         all_signatures = []
         before = None
         max_total = 10000
-        
+
         while len(all_signatures) < max_total:
             params = [mint, {"limit": min(limit, 1000), "commitment": "finalized", "searchTransactionHistory": True}]
             if before:
                 params[1]["before"] = before
-            
+
             payload = {"jsonrpc": "2.0", "id": 1, "method": "getSignaturesForAddress", "params": params}
             result = await self._make_helius_request(payload)
-            
+
             if not result or "result" not in result or not result["result"]:
                 break
-            
+
             batch_signatures = [sig["signature"] for sig in result["result"]]
             if not batch_signatures:
                 break
-            
+
             all_signatures.extend(batch_signatures)
             before = batch_signatures[-1]
-            
+
             if not batch_signatures or (not get_all and len(batch_signatures) < min(limit, 1000)):
                 break
             await asyncio.sleep(0.5)
-        
+
         logger.info(f"Collected {len(all_signatures)} signatures for {mint}")
         return all_signatures
 
+    # ------------------------------------------------------------------
+    # Internal: single transaction fetch
+    # ------------------------------------------------------------------
     async def _get_transaction_details(self, signature: str) -> Optional[Dict[str, Any]]:
+        """Retrieve parsed transaction details for a single signature.
+
+        Args:
+            signature: The base-58 transaction signature.
+
+        Returns:
+            The ``result`` field of the JSON-RPC response, or None.
+        """
         payload = {"jsonrpc": "2.0", "id": 1, "method": "getTransaction", "params": [signature, {"encoding": "jsonParsed", "maxSupportedTransactionVersion": 0}]}
         result = await self._make_helius_request(payload)
         return result.get("result") if result else None
 
+    # ------------------------------------------------------------------
+    # Internal: swap detection and parsing
+    # ------------------------------------------------------------------
     def _is_swap_transaction(self, tx: Dict[str, Any]) -> bool:
+        """Return True if the transaction looks like a token swap.
+
+        Args:
+            tx: Parsed transaction dict from the RPC.
+
+        Returns:
+            True when the transaction has no error and contains post
+            token balance entries.
+        """
         if not tx.get("meta") or tx["meta"].get("err") or not tx["meta"].get("postTokenBalances"):
             return False
         return True
 
     def _parse_swap_details(self, tx: Dict[str, Any], mint: str) -> Optional[Dict[str, Any]]:
+        """Extract price and volume from a swap transaction.
+
+        Computes price as (SOL change / token change) multiplied by a
+        rough SOL/USD estimate.
+
+        Args:
+            tx: Parsed transaction dict from the RPC.
+            mint: The SPL token mint to track.
+
+        Returns:
+            A dict with ``timestamp``, ``price``, and ``volume_usd``
+            keys, or None if the swap cannot be parsed.
+        """
         try:
             meta = tx.get("meta", {})
             pre_balances = {bal['mint']: bal['uiTokenAmount']['uiAmount'] for bal in meta.get("preTokenBalances", []) if bal.get('uiTokenAmount')}
             post_balances = {bal['mint']: bal['uiTokenAmount']['uiAmount'] for bal in meta.get("postTokenBalances", []) if bal.get('uiTokenAmount')}
-            
+
             token_change = abs(post_balances.get(mint, 0) - pre_balances.get(mint, 0))
             if token_change == 0: return None
 
             sol_change = 0
             for i, pre_bal in enumerate(meta.get("preBalances", [])):
                 post_bal = meta.get("postBalances", [])[i]
-                if abs(post_bal - pre_bal) > 1000: # Ignore small fee changes
+                if abs(post_bal - pre_bal) > 1000:  # Ignore small fee changes
                     sol_change = abs(post_bal - pre_bal) / 1e9
                     break
-            
+
             if sol_change > 0:
                 price = sol_change / token_change
                 # Simple SOL price estimate
@@ -378,41 +574,57 @@ class OnChainDataProvider:
         except Exception:
             return None
 
+    # ------------------------------------------------------------------
+    # Internal: OHLCV construction from swap price history
+    # ------------------------------------------------------------------
     def _build_history_from_swaps(self, price_history: List[Dict[str, Any]], mint: str) -> Dict[str, Any]:
+        """Resample raw swap prices into 5-minute OHLCV candles.
+
+        Also computes launch price, 72-hour peak, and all-time high.
+
+        Args:
+            price_history: List of dicts with ``timestamp``, ``price``,
+                and ``volume`` keys.
+            mint: The SPL token mint (used for logging).
+
+        Returns:
+            A dict with ``ohlcv``, ``launch_price``, ``peak_price_72h``,
+            ``post_ath_peak_price``, ``current_price``, and
+            ``volume_24h`` keys.
+        """
         logger.debug(f"_build_history_from_swaps for {mint}: Received {len(price_history)} price points.")
         if not price_history:
             logger.debug(f"_build_history_from_swaps for {mint}: price_history is empty.")
             return {}
-        
+
         df = pd.DataFrame(price_history)
         df['datetime'] = pd.to_datetime(df['timestamp'], unit='s')
         df.sort_values('datetime', inplace=True)
         logger.debug(f"_build_history_from_swaps for {mint}: DataFrame head:\n{df.head()}")
-        
+
         # Resample to 5-minute OHLCV
         ohlcv = df.set_index('datetime')['price'].resample('5min').ohlc().dropna()
         volume = df.set_index('datetime')['volume'].resample('5min').sum().dropna()
         ohlcv = ohlcv.join(volume).rename(columns={'volume': 'v', 'open': 'o', 'high': 'h', 'low': 'l', 'close': 'c'})
         ohlcv['ts'] = ohlcv.index.astype(int) // 10**9
         logger.debug(f"_build_history_from_swaps for {mint}: OHLCV head:\n{ohlcv.head()}")
-        
+
         launch_time = df['datetime'].min()
         hours_72_cutoff = launch_time + timedelta(hours=72)
-        
+
         early_df = df[df['datetime'] <= hours_72_cutoff]
         post_df = df[df['datetime'] > hours_72_cutoff]
         logger.debug(f"_build_history_from_swaps for {mint}: early_df empty: {early_df.empty}, post_df empty: {post_df.empty}")
-        
+
         # Calculate all-time high (ATH) from entire dataset
         all_time_high = df['price'].max() if not df.empty else None
-        
-        # Peak price within 72h of launch
+
+        # Peak price within 72 h of launch
         peak_price_72h = early_df['price'].max() if not early_df.empty else None
-        
+
         # For post_ath_peak_price, use the all-time high from the entire dataset
-        # This represents the highest price the token ever reached
         post_ath_peak_price = all_time_high
-        
+
         result = {
             'ohlcv': ohlcv.reset_index().to_dict('records'),
             'launch_price': df['price'].iloc[0] if not df.empty else None,
@@ -424,8 +636,21 @@ class OnChainDataProvider:
         logger.debug(f"_build_history_from_swaps for {mint}: Returning result: {result.keys()}")
         return result
 
+    # ------------------------------------------------------------------
+    # Internal: external price fallback
+    # ------------------------------------------------------------------
     async def _get_external_price_data(self, mint: str) -> Optional[PriceData]:
-        # This method remains as a final fallback
+        """Attempt to fetch price data from the Jupiter price API.
+
+        This method serves as a last-resort fallback when neither the
+        database nor on-chain analysis yields a price.
+
+        Args:
+            mint: The SPL token mint address.
+
+        Returns:
+            A ``PriceData`` instance, or None if the API call fails.
+        """
         try:
             jupiter_url = f"https://price.jup.ag/v4/price?ids={mint}"
             async with self.session.get(jupiter_url) as response:
@@ -437,6 +662,6 @@ class OnChainDataProvider:
                         return PriceData(price=price, volume_24h=0.0, timestamp=datetime.now())
         except Exception as e:
             logger.debug(f"Error with Jupiter API for {mint}: {e}")
-        
+
         logger.debug(f"No external price data found for {mint}")
         return None

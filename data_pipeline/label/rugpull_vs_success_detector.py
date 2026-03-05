@@ -1,53 +1,64 @@
 """
-Rugpull vs Success Detector
+Rugpull vs Success Detector for Solana Token Classification.
 
-This module provides sophisticated algorithms to distinguish between:
-1. Legitimate successful coins that experienced natural volume/price drops
-2. Actual rugpulls with coordinated malicious intent
+Provides sophisticated algorithms to distinguish between:
+- Legitimate successful coins that experienced natural volume/price drops.
+- Actual rugpulls with coordinated malicious intent.
 
-The key insight is that successful coins often have extreme volatility and volume drops,
-but they exhibit different recovery patterns compared to rugpulls.
+The key insight is that successful coins often have extreme volatility and
+volume drops, but they exhibit fundamentally different recovery patterns
+compared to rugpulls.
 
-Key Differentiators:
-- Volume recovery patterns (organic vs artificial)
-- Recovery timing and sustainability
-- Transaction patterns during recovery
-- Community behavior during drops
-- Price action legitimacy
+Key differentiators analyzed:
+- Volume recovery patterns (organic vs artificial).
+- Recovery timing, sustainability, and price-volume correlation.
+- Transaction patterns during recovery windows.
+- Community behavior (holder growth/decline) during drops.
+- Price action legitimacy via multi-window scoring.
 
-Author: Enhanced Token Classification System
-Date: August 2025
+Author: ML-Bullx Team
+Date: 2025-08-01
 """
-
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+
+# =============================================================================
+# Data Structures
+# =============================================================================
+
 @dataclass
 class VolumeDropEvent:
-    """Represents a significant volume drop event."""
-    timestamp: datetime
-    pre_drop_volume: float  # Average volume before drop
-    drop_volume: float      # Lowest volume during drop
-    post_drop_volume: Optional[float] = None  # Volume after recovery attempt
-    drop_percentage: float = 0.0  # % volume reduction
-    recovery_time_hours: Optional[float] = None  # Hours to recover
-    recovery_strength: float = 0.0  # Recovery volume vs pre-drop
-    transaction_pattern_score: float = 0.0  # Legitimacy score of transactions
-    price_correlation: float = 0.0  # How volume correlates with price action
-    
-    # Enhanced price analysis fields
-    price_stability_during_recovery: float = 0.0  # Price stability score during recovery
-    liquidity_indicator: float = 0.0  # Estimated liquidity based on price-volume behavior
-    pre_drop_price: float = 0.0  # Average price before drop
-    drop_price: float = 0.0  # Price at drop
+    """Represents a significant volume drop event with recovery analysis.
+
+    Captures pre-drop, trough, and post-recovery metrics to enable
+    pattern-based classification of organic dips vs coordinated exits.
+    """
+
+    timestamp: datetime                              # When the drop was detected
+    pre_drop_volume: float                           # Average volume before drop (USD)
+    drop_volume: float                               # Lowest volume during drop (USD)
+    post_drop_volume: Optional[float] = None         # Volume after recovery attempt
+    drop_percentage: float = 0.0                     # Percentage volume reduction (0-1)
+    recovery_time_hours: Optional[float] = None      # Hours from trough to recovery
+    recovery_strength: float = 0.0                   # Post-recovery volume / pre-drop volume
+    transaction_pattern_score: float = 0.0           # Legitimacy score of transaction flow
+    price_correlation: float = 0.0                   # Volume-price correlation coefficient
+
+    # -- Enhanced price analysis fields --
+    price_stability_during_recovery: float = 0.0     # Price stability score during recovery
+    liquidity_indicator: float = 0.0                 # Estimated liquidity from price-volume behavior
+    pre_drop_price: float = 0.0                      # Average price before drop (USD)
+    drop_price: float = 0.0                          # Price at drop trough (USD)
 
 @dataclass
 class RecoveryStage:
